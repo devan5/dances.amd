@@ -21,6 +21,7 @@ with dances
 		"v2.1": [
 			+ dances.add() 增加一个实现, 若 .add 最后一个参数为 布尔值true, 则会省去倒数, 直接运行.
 			+ 解决 mul 调用 factory 被调用多次.
+			+ TODO 测试 不符合 ADM 规范: "显示地 抛出错误"
 		]
 
 	}
@@ -903,6 +904,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				}
 
 				this.requireExports = [];
+				this.loadComplete = [];
 				this.requireCallback = callback;
 
 				this.dependencies = args.pop();
@@ -932,17 +934,23 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						// 非第一次请求依赖
 						// 因为 ie9 及以下, loaded 模式不同, 应当先判断是否已初始化了工厂方法.
 
-						$log(id);
 						if(addProduct.exports){
 							_this.requireExports.push(addProduct.exports);
 							_this.require();
 
 						}else if(arrDefine.length){
 							arrDefine.shift()(_this, addProduct);
-							$log(id, "___________", addProduct,addProduct.exports);
 
 						}else{
-							throw "The [" + id + "] is not support AMD, use require.shim to shim it.";
+							if("[object Array]" !== Object.prototype.toString.call(addProduct.loadComplete)){
+								addProduct.loadComplete = [];
+							}
+
+							addProduct.loadComplete.push(function(){
+								_this.requireExports.push(addProduct.exports);
+								_this.require();
+							});
+
 						}
 
 					});
@@ -1028,7 +1036,9 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 							// shim
 							(instShim = confVar.shim[id]) && (fShim = function(){
+								requireCount++;
 								define(instShim.deps || [], function(){
+									requireCount--;
 									return dances.$eval(instShim.exports);
 								});
 							});
@@ -1045,7 +1055,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 								instShim = null;
 
-							},true);
+							});
 						}
 				}
 				return this;
@@ -1053,7 +1063,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 			loadExports: function(_factory, _factoryArgs){
 				var
-					module = this.transferModule,
+					moduleAchieve = this.transferModule,
 					exports,
 					aParam,
 
@@ -1061,18 +1071,18 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				;
 
 				// 防止重复调用 工厂方法
-				if(module.exports){
-					exports = module.exports;
+				if(moduleAchieve.exports){
+					exports = moduleAchieve.exports;
 
 				}else{
 					// step 1: 执行工厂函数
-					exports = module.exports = {};
+					exports = moduleAchieve.exports = {};
 
 					if(_factoryArgs && _factoryArgs.length){
 						_factoryArgs = slice(_factoryArgs, 0);
 
 						linkKey = {
-							module : module,
+							module : moduleAchieve,
 							exports: exports
 						};
 
@@ -1088,14 +1098,24 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						});
 					}
 
-					aParam = _factoryArgs || [getExistExports, exports, module];
+					aParam = _factoryArgs || [getExistExports, exports, moduleAchieve];
 					aParam.length = _factory.length;
 
-					exports = _factory.apply(this, aParam) || module.exports;
+					exports = _factory.apply(this, aParam) || moduleAchieve.exports;
 
-					module.exports = exports;
+					if(moduleAchieve.loadComplete && "[object Array]" === Object.prototype.toString.call(moduleAchieve.loadComplete)){
 
-//					module._factoryArgs = aParam;
+						forEach(moduleAchieve.loadComplete, function(item){
+							item(exports);
+						});
+
+						moduleAchieve.loadComplete.length = 0;
+
+					}
+
+					moduleAchieve.exports = exports;
+
+					moduleAchieve._factoryArgs = aParam;
 				}
 
 				// step 2:
@@ -1106,7 +1126,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 				return this;
 			}
-
 		};
 
 		define = function(/*[id, ][dependencies, ]factory*/){
@@ -1222,7 +1241,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						// 开启 define中 dependence 队列
 						require(deps, function(){
 							instRequire.loadExports(_factory, _factoryParam && arguments);
-							$$log(addProduct.exports,"warn")
 						});
 
 					}else{
