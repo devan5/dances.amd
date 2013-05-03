@@ -14,13 +14,13 @@ with dances
 
 	log: {
 		"v2.0": [
-			+.	现5大dances之一 dances.amd, dances.add 与 dances.require 合并
-			+.	版本号从 2.0 开始, 预防冲突
-			+.	{logs}
+			+ 实现五大 dances.core 之一 dances.amd, dances.add 与 dances.require 合并
+			+ 版本号从 2.0 开始, 预防冲突
 		],
 
 		"v2.1": [
-			+.	// TODO 解决 mul 调用, factory 被调用多次.
+			+ dances.add() 增加一个实现, 若 .add 最后一个参数为 布尔值true, 则会省去倒数, 直接运行.
+			+ 解决 mul 调用 factory 被调用多次.
 		]
 
 	}
@@ -585,16 +585,31 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 		Add = {
 			add: function(){
 				var
-					_this = this
-					;
+					_this = this,
+					bDirectly,
+					args = slice(arguments, 0)
+				;
 
 				this.time && clearTimeout(this.time);
 
-				this.stack = this.stack.concat(slice(arguments, 0));
+				bDirectly = args.pop();
 
-				this.time = setTimeout(function(){
-					_this.handleArgs();
-				}, 0);
+				if("boolean" !== typeof bDirectly && bDirectly){
+					args.push(bDirectly);
+					bDirectly = false;
+				}
+
+				this.stack = this.stack.concat(args);
+
+				if(bDirectly){
+					this.handleArgs();
+
+				}else{
+
+					this.time = setTimeout(function(){
+						_this.handleArgs();
+					}, 0);
+				}
 
 				return this;
 			},
@@ -612,7 +627,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					len,
 					i,
 					next
-					;
+				;
 
 				stack = this.stack;
 
@@ -681,7 +696,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 		add = function(){
 			var
 				bridge
-				;
+			;
 
 			bridge = create(Add);
 			bridge.stack = slice(arguments, 0);
@@ -905,27 +920,31 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			require: function(){
 				var
 					id,
-					url,
 					dep = this.dependencies,
-					self = this
+					_this = this
 				;
 
 				if(dep.length){
 					id = dep.shift();
 
-					requireCount++;
-					this.requireAtom(trim(id), function(inst){
-						requireCount--;
+					this.requireAtom(trim(id), function(addProduct){
 
-						if(arrDefine.length){
-							arrDefine.shift()(self, inst);
+						// 非第一次请求依赖
+						// 因为 ie9 及以下, loaded 模式不同, 应当先判断是否已初始化了工厂方法.
 
-						}else if((url = id2path(id)) && "function" === typeof requireRepo[url].callAgain){
-							requireRepo[url].callAgain(self);
+						$log(id);
+						if(addProduct.exports){
+							_this.requireExports.push(addProduct.exports);
+							_this.require();
+
+						}else if(arrDefine.length){
+							arrDefine.shift()(_this, addProduct);
+							$log(id, "___________", addProduct,addProduct.exports);
 
 						}else{
 							throw "The [" + id + "] is not support AMD, use require.shim to shim it.";
 						}
+
 					});
 
 				}else{
@@ -946,7 +965,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			},
 
 			// 封装 dances.add
-			// 如果已经被加载后, 同步得到 模块exports
+			// 如果已经被加载后, 则同步得到 模块 exports
 			requireAtom: function(id, callback){
 				var
 					_id = id.toLowerCase(),
@@ -958,8 +977,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					fShim
 				;
 
-				// switch 1: 寻找关键字
 				switch(_id){
+					// switch 1: 寻找关键字
 					case "require":
 							this.requireExports.push(getExistExports);
 							this.require();
@@ -971,6 +990,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 							this.require();
 						break;
 
+					// switch 2: 非关键 加载
 					default :
 
 						/*
@@ -988,7 +1008,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						url = id2path(id);
 
 						// switch 2: 寻找是否已经加载
-						if(requireRepo.hasOwnProperty(url)){
+						if(requireRepo.hasOwnProperty(url) && requireRepo[url].exports){
+
 							this.requireExports.push(requireRepo[url].exports);
 
 							// 继续 require 依赖队列
@@ -1012,16 +1033,19 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 								});
 							});
 
-							this.add.add(url, function(inst){
+							requireCount++;
+							this.add.add(url, function(addProduct){
+								requireCount--;
 
 								__time && clearTimeout(__time);
 
 								fShim && fShim();
 
-								callback(inst);
+								callback(addProduct);
 
 								instShim = null;
-							});
+
+							},true);
 						}
 				}
 				return this;
@@ -1036,36 +1060,43 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					linkKey
 				;
 
-				// step 1: 执行工厂函数
-				exports = module.exports = {};
+				// 防止重复调用 工厂方法
+				if(module.exports){
+					exports = module.exports;
 
-				if(_factoryArgs && _factoryArgs.length){
-					_factoryArgs = slice(_factoryArgs, 0);
+				}else{
+					// step 1: 执行工厂函数
+					exports = module.exports = {};
 
-					linkKey = {
-						module : module,
-						exports: exports
-					};
+					if(_factoryArgs && _factoryArgs.length){
+						_factoryArgs = slice(_factoryArgs, 0);
 
-					forEach(_factoryArgs, function(v, i){
-						var
-							item
-						;
+						linkKey = {
+							module : module,
+							exports: exports
+						};
 
-						if(item = oREG.factoryParam.exec(v)){
-							_factoryArgs.splice(i, 1, linkKey[item[1]]);
-						}
+						forEach(_factoryArgs, function(v, i){
+							var
+								item
+							;
 
-					});
+							if(item = oREG.factoryParam.exec(v)){
+								_factoryArgs.splice(i, 1, linkKey[item[1]]);
+							}
+
+						});
+					}
+
+					aParam = _factoryArgs || [getExistExports, exports, module];
+					aParam.length = _factory.length;
+
+					exports = _factory.apply(this, aParam) || module.exports;
+
+					module.exports = exports;
+
+//					module._factoryArgs = aParam;
 				}
-
-				aParam = _factoryArgs || [getExistExports, exports, module];
-				aParam.length = _factory.length;
-
-				exports = _factory.apply(this, aParam) || module.exports;
-				module.exports = exports;
-
-				module._factoryArgs = aParam;
 
 				// step 2:
 				this.requireExports.push(exports);
@@ -1094,8 +1125,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			;
 
 			// 防止 直接调用 define 引发的挫感
-			if(requireCount === arrDefine.length){
-				return ;
+			if(requireCount === 0){
+				throw "Illegal invoke define";
 			}
 
 			// do nothings
@@ -1157,7 +1188,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 			}
 
-			arrDefine.push(function(instRequire, instAdd){
+			arrDefine.push(function(instRequire, addProduct){
 				var
 					_dependencies
 				;
@@ -1170,10 +1201,11 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				}
 
 				// handle mock id
-				id && confV.paths(id, instAdd.src);
+				id && confV.paths(id, addProduct.src);
 
 				// 保留激活链
-				instAdd.callAgain = function(instRequire, deps){
+				addProduct.callAgain = function(instRequire, deps){
+
 					// 拷贝依赖
 					if(!deps && _dependencies && _dependencies.length){
 						deps = [];
@@ -1182,7 +1214,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						});
 					}
 
-					instRequire.transferModule = instAdd;
+					instRequire.transferModule = addProduct;
 					instRequire.transferModule.__define = _factory;
 
 					if(deps && deps.length){
@@ -1190,20 +1222,22 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						// 开启 define中 dependence 队列
 						require(deps, function(){
 							instRequire.loadExports(_factory, _factoryParam && arguments);
+							$$log(addProduct.exports,"warn")
 						});
 
 					}else{
 						instRequire.loadExports(_factory, "");
 					}
+
 				};
 
-				instAdd.callAgain(instRequire, dependencies);
+				addProduct.callAgain(instRequire, dependencies);
 
 			});
 
 		};
 
-		require = function(/*[id ,][dependence ,]callback*/){
+		require = function(/*[dependence ,]callback*/){
 			var
 				v5 = arguments[arguments.length - 1],
 				sType = typeof  v5
@@ -1220,6 +1254,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			}else if("string" === sType && 1 === arguments.length){
 				dances.add(v5);
 			}
+
 		};
 
 		confVar= {
@@ -1342,7 +1377,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				}
 			}
 		})();
-
 
 		require.conf = conf;
 		define.amd = {};
