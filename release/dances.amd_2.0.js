@@ -3,26 +3,20 @@ with dances
 
 	called: amd
 
-	version: 2.1_dev
+	version: 2.0
 
 	firstDate: 2013.04.09
 
-	lastDate: 2013.05.05
+	lastDate: 2013.04.09
 
 	require: [
 	],
 
 	log: {
 		"v2.0": [
-			+ 实现五大 dances.core 之一 dances.amd, dances.add 与 dances.require 合并
-			+ 版本号从 2.0 开始, 预防冲突
-		],
-
-		"v2.1": [
-			+ dances.add() 增加一个实现, 若 .add 最后一个参数为 布尔值true, 则会省去倒数, 直接运行.
-			+ 解决 mul 调用 factory 被调用多次.
-			+ 重写 帮助文档
-			+ TODO 测试 不符合 ADM 规范: "显示地 抛出错误"
+			+.	现5大dances之一 dances.amd, dances.add 与 dances.require 合并
+			+.	版本号从 2.0 开始, 预防冲突
+			+.	{logs}
 		]
 
 	}
@@ -30,226 +24,203 @@ with dances
 ~~~~~~~~*/
 
 /*_______
-# dances.add
+	dances.add syntax:
 
-## syntax
+		I:
+			dances
+				.add(src[, src1][, srcN][, callback])
+			;
 
-+
-	dances
-		.add(src[, src1][, srcN][, callback])
-	;
+		II:
+			dances
+				.add(src, callback)
+			;
 
-+
-	dances
-		.add(src, callback)
-	;
+		III:
+			dances
+				.add(src)
+				.add(callback)
+			;
 
-+
-	dances
-		.add(src)
-		.add(callback)
-	;
+		IV:
+			dances
+				.add(src)
+				.add(callback)
+				.add(src2)
+				.add(src3)
+			;
 
-+
-	dances
-		.add(src)
-		.add(callback)
-		.add(src2)
-		.add(src3)
-	;
+		V:
+			dances
+				.add(src)
+				.add(src2)
+				.add(src3, src4, src)
+				.add(callback)
+			;
 
-+
-	dances
-		.add(src)
-		.add(src2)
-		.add(src3, src4, src)
-		.add(callback)
-	;
+		VI:
+			// 有效解决 模板与子页的依赖
+			dances
+				.add(require1, require2, require3)
+				.add(function(){
+					// do with code
+				})
+			;
 
-+ 有效解决 模板与子页的依赖
-
-	// 模板页
-	dances
-		.add(require1, require2, require3)
-		.add(function(){
-			// do with code
-		})
-	;
-
-	// 子页
-	dances
-		// notice "require3" !
-		.add(require3)
-		.add(require4)
-		.add(require5)
-	;
+			dances
+				// notice "require3" !
+				.add(require3)
+				.add(require4)
+				.add(require5)
+			;
 
 _______*/
 
 /*_______
+	dances.require syntax:
+		define([id, ][dependencies, ]factory);
+			id:
+				定义模块名称,
+				如果模块名被省略不写,则是一个匿名模块, 模块引用与 它文件路径和文件名有关
+				// The AMD loader will give the module an ID based on how it is referenced by other scripts
 
-# dances.require
-## syntax
-	define([id, ][dependencies, ]factory);
+			dependencies:
+				是个定义中模块所依赖模块的数组.
+				依赖模块必须根据模块的工厂方法优先级执行, 并且执行的结果应该按照依赖数组中的位置顺序以参数的形式传入（定义中模块的）工厂方法中
 
-### id:
-	定义模块名称,
-	如果模块名被省略不写,则是一个匿名模块, 模块引用与 它文件路径和文件名有关
-	// The AMD loader will give the module an ID based on how it is referenced by other scripts
+				依赖参数是可选的，如果忽略此参数，它应该默认为["require", "exports", "module"]:
+					define(function(require, exports, module){
+						// factory
+					});
 
+				注意: 工厂函数,并没有定义形参, 则不会传入 ["require", "exports", "module"] 作为参数:
+					define(function(){
+						// factory
+						arguments.length === 0;	// true
+					});
 
-### dependencies:
-定义中模块依赖模块的数组.
+				然而，如果工厂方法的长度属性小于3，加载器会选择以函数的长度属性指定的参数个数调用工厂方法:
+					define(function(require){
+						// factory
+					});
 
-+ rule 0:
-依赖模块中的模块按照依赖顺序实现, 并且实现的结果应该按照依赖数组中的位置顺序以参数的形式传入(定义中模块的)工厂方法中
+					define(function(require, exports){
+						// factory
+					});
 
-+ rule1:
-要在 dependencies 中, 使用定义模块中的 "require" | "module" | "exports", 必须显示地使用它们. 本规则遵守 rule 0
+			factory:
 
-+ rule2:
-省略 dependencies, factory 的形参默认使用 "require" | "exports" | "module", 而且形参长度以 factory.length 为准,
-另外, 形参名字没有要求必须使用 "require" | "exports" | "module" 关键字.
-
-
-依赖参数是可选的, 如果忽略此参数, 则 factory函数的形参默认为 ["require", "exports", "module"], 如下:
-	define(function(require, exports, module){
+	demo:
+	// 完整_______Start
+	define("newModule", [module1, module2, moduleN], function(module1, module2, moduleN){
 		// factory
 	});
 
-注意: 工厂函数,并没有定义形参, 则不会传入 ["require", "exports", "module"] 作为参数:
-	define(function(){
-		// factory
-		arguments.length === 0;	// true
-	});
-
-然而, 如果工厂方法的长度属性小于3, 加载器会选择以函数的长度属性指定的参数个数调用工厂方法:
-	define(function(require){
-		// factory
-	});
-
-	define(function(require, exports){
-		// factory
-	});
-
-### factory:
-工厂函数, 模块的定义.
-
-#### 形参关键字
-全称, 工厂函数形参关键字.
-
-是指, 省略依赖时, 默认作为形参的三个对象集合.
-+ require
-+ exports
-+ module
-
-## demo:
-
-### 全体模式
-	define("newModuleId", ["module1", "module2", "moduleN"], function(module1, module2, moduleN){
-		// Do your asyn define
-	});
-
-### 形参定义混入模式
-	define("newModuleId", ["require", "module2", "exports"], function(re, module2, exports){
-		// Do your asyn define
-	});
-
-### 省略 define id
+	// 省略 id_______Start
 	define([module1, module2, moduleN], function(module1, module2, moduleN){
-		// Do your asyn define
+		// factory
 	});
 
-### 省略 dependencies
-	define("newModule", function(require, exports, module){
-		// Do your asyn define
+	// 省略 dependencies_______Start
+	define("newModule", function([require, ][exports, ][module]){
+		// factory
 	});
 
-### 混合 dependencies
+
+	// rule1: 根据 [依赖数组]的关键字 "require" | "module" | "exports" 传入factory作为 形参
+	// rule2: 如果省略[依赖数组], factory 形参以 ["require", "exports", "module"] 为默认, 形参长度以 factory.length 为准
+
 	define(["moduleA", "require"], function(moduleA, require){
 		// factory
 	});
-
-### 使用 定义关键字, 作为形参
+	define(["moduleA", "require"], function(moduleA, require){
+		// factory
+	});
 	define(["exports"], function(exports){
 		// factory
 	});
 
+	// 简易 define
+	define("newModule",{});
 
-### 简易 define
-	define("newModule", {});
-
-### 常用
-	define(function(require, exports, module){
+	// 简写
+	define(function([require, ][exports, ][module]){
 		// factory
 	});
 
-_______*/
-
-/*_______
-
-# dances.require
-## syntax:
-	require(dependencies, applyFactory);
-
-### dependencies
-依赖应用模块的数组
-
-### applyFactory
-应用工厂方法
-
-### demo
-
-#### 一般模式
-	require(["module1", "module2", "module3"], function(module1, module2, module3){
-		// 应用工厂方法
-	});
-
-#### 使用两个版本jQuery
-	require(["jQuery_1.7", "jQuery_1.9"], function($17, $19){
-
-	});
-
-	// TODO 可以实现以下模式
-	require(function(){
-		var
-			$17 = require("jQuery_1.7"),
-			$14 = require("jQuery_1.9")
-		;
-	});
 
 _______*/
 
 /*_______
-# dances.require.conf
+	dances.require syntax:
+		require([module1, module2, module3], function(module1, module2, module3){
+			// callback
+		});
 
-## syntax
+		require.config = {
 
-### 配置基路径
- 	require.conf("baseUrl": "");
+			// 可选配置 各个模块的加载路径
+			path: {
+				jQuery1_4: "/lib/jQuery_1.4.4",
+				jQuery1_7: "/lib/jQuery_1.7.2",
+				MooTools: "/lib/jMooTools_1.4.5"
+			}
+		};
 
-### 配置模块路径
-	require.conf("paths": {
-		moduleName: "moduleSrc"
-	});
+		require.config = {
 
-### 配置超时时间
-	require.conf("timeout": millisecond);
+			// 改变基目录
+			baseUrl: "/lib",
 
-### 配置垫片
-	require.conf("shim": {
-		moduleName: {
-			deps: [],
-			exports: "string" || function(){},
-			path: ""
-		}
-	});
+			// 可选配置 各个模块的加载路径
+			path: {
+				jQuery1_4: "jQuery_1.4.4",
+				jQuery1_7: "jQuery_1.7.2",
+				MooTools: "jMooTools_1.4.5"
+			}
+		};
 
-### 多重调用
-	require.conf({
-		confName: confValue,
-		confNameN: confValueN
-	});
+
+		// demo
+		require(["jQuery_1_4", "jQuery_1_7"], function($17, $14){
+
+		});
+
+		require(function(){
+			var $17 = require("jQuery_1_4");
+			var $14 = require("jQuery_1_4");
+		});
+
+
+_______*/
+
+/*_______
+	dances.require syntax:
+		//
+		require.conf({
+			confName: confValue,
+			confNameN: confValueN
+		});
+
+		// 配置基路径
+		require.conf("baseUrl": "");
+
+		// 配置模块路径
+		require.conf("paths": {
+			moduleName: "moduleSrc"
+		});
+
+		// timeout
+		require.conf("timeout": millisecond);
+
+		// 垫片
+		require.conf("shim": {
+			moduleName: {
+				deps: [],
+				exports: "string" || function(){},
+				path: ""
+			}
+		});
 
 _______*/
 
@@ -620,31 +591,16 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 		Add = {
 			add: function(){
 				var
-					_this = this,
-					bDirectly,
-					args = slice(arguments, 0)
-				;
+					_this = this
+					;
 
 				this.time && clearTimeout(this.time);
 
-				bDirectly = args.pop();
+				this.stack = this.stack.concat(slice(arguments, 0));
 
-				if("boolean" !== typeof bDirectly && bDirectly){
-					args.push(bDirectly);
-					bDirectly = false;
-				}
-
-				this.stack = this.stack.concat(args);
-
-				if(bDirectly){
-					this.handleArgs();
-
-				}else{
-
-					this.time = setTimeout(function(){
-						_this.handleArgs();
-					}, 0);
-				}
+				this.time = setTimeout(function(){
+					_this.handleArgs();
+				}, 0);
 
 				return this;
 			},
@@ -662,7 +618,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					len,
 					i,
 					next
-				;
+					;
 
 				stack = this.stack;
 
@@ -726,19 +682,12 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 				return this;
 			}
-
-		};
-
-		// 兼容之前代码
-		Add.ready = Add.waits = function(){
-			this.add.apply(this, arguments);
-			return this;
 		};
 
 		add = function(){
 			var
 				bridge
-			;
+				;
 
 			bridge = create(Add);
 			bridge.stack = slice(arguments, 0);
@@ -945,7 +894,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				}
 
 				this.requireExports = [];
-				this.loadComplete = [];
 				this.requireCallback = callback;
 
 				this.dependencies = args.pop();
@@ -963,37 +911,27 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			require: function(){
 				var
 					id,
+					url,
 					dep = this.dependencies,
-					_this = this
+					self = this
 				;
 
 				if(dep.length){
 					id = dep.shift();
 
-					this.requireAtom(trim(id), function(addProduct){
+					requireCount++;
+					this.requireAtom(trim(id), function(inst){
+						requireCount--;
 
-						// 非第一次请求依赖
-						// 因为 ie9 及以下, loaded 模式不同, 应当先判断是否已初始化了工厂方法.
+						if(arrDefine.length){
+							arrDefine.shift()(self, inst);
 
-						if(addProduct.exports){
-							_this.requireExports.push(addProduct.exports);
-							_this.require();
-
-						}else if(arrDefine.length){
-							arrDefine.shift()(_this, addProduct);
+						}else if((url = id2path(id)) && "function" === typeof requireRepo[url].callAgain){
+							requireRepo[url].callAgain(self);
 
 						}else{
-							if("[object Array]" !== Object.prototype.toString.call(addProduct.loadComplete)){
-								addProduct.loadComplete = [];
-							}
-
-							addProduct.loadComplete.push(function(){
-								_this.requireExports.push(addProduct.exports);
-								_this.require();
-							});
-
+							throw "The [" + id + "] is not support AMD, use require.shim to shim it.";
 						}
-
 					});
 
 				}else{
@@ -1014,7 +952,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			},
 
 			// 封装 dances.add
-			// 如果已经被加载后, 则同步得到 模块 exports
+			// 如果已经被加载后, 同步得到 模块exports
 			requireAtom: function(id, callback){
 				var
 					_id = id.toLowerCase(),
@@ -1026,8 +964,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					fShim
 				;
 
+				// switch 1: 寻找关键字
 				switch(_id){
-					// switch 1: 寻找关键字
 					case "require":
 							this.requireExports.push(getExistExports);
 							this.require();
@@ -1039,7 +977,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 							this.require();
 						break;
 
-					// switch 2: 非关键 加载
 					default :
 
 						/*
@@ -1057,8 +994,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						url = id2path(id);
 
 						// switch 2: 寻找是否已经加载
-						if(requireRepo.hasOwnProperty(url) && requireRepo[url].exports){
-
+						if(requireRepo.hasOwnProperty(url)){
 							this.requireExports.push(requireRepo[url].exports);
 
 							// 继续 require 依赖队列
@@ -1077,25 +1013,20 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 							// shim
 							(instShim = confVar.shim[id]) && (fShim = function(){
-								requireCount++;
 								define(instShim.deps || [], function(){
-									requireCount--;
 									return dances.$eval(instShim.exports);
 								});
 							});
 
-							requireCount++;
-							this.add.add(url, function(addProduct){
-								requireCount--;
+							this.add.add(url, function(inst){
 
 								__time && clearTimeout(__time);
 
 								fShim && fShim();
 
-								callback(addProduct);
+								callback(inst);
 
 								instShim = null;
-
 							});
 						}
 				}
@@ -1104,60 +1035,43 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 			loadExports: function(_factory, _factoryArgs){
 				var
-					moduleAchieve = this.transferModule,
+					module = this.transferModule,
 					exports,
 					aParam,
 
 					linkKey
 				;
 
-				// 防止重复调用 工厂方法
-				if(moduleAchieve.exports){
-					exports = moduleAchieve.exports;
+				// step 1: 执行工厂函数
+				exports = module.exports = {};
 
-				}else{
-					// step 1: 执行工厂函数
-					exports = moduleAchieve.exports = {};
+				if(_factoryArgs && _factoryArgs.length){
+					_factoryArgs = slice(_factoryArgs, 0);
 
-					if(_factoryArgs && _factoryArgs.length){
-						_factoryArgs = slice(_factoryArgs, 0);
+					linkKey = {
+						module : module,
+						exports: exports
+					};
 
-						linkKey = {
-							module : moduleAchieve,
-							exports: exports
-						};
+					forEach(_factoryArgs, function(v, i){
+						var
+							item
+						;
 
-						forEach(_factoryArgs, function(v, i){
-							var
-								item
-							;
+						if(item = oREG.factoryParam.exec(v)){
+							_factoryArgs.splice(i, 1, linkKey[item[1]]);
+						}
 
-							if(item = oREG.factoryParam.exec(v)){
-								_factoryArgs.splice(i, 1, linkKey[item[1]]);
-							}
-
-						});
-					}
-
-					aParam = _factoryArgs || [getExistExports, exports, moduleAchieve];
-					aParam.length = _factory.length;
-
-					exports = _factory.apply(this, aParam) || moduleAchieve.exports;
-
-					if(moduleAchieve.loadComplete && "[object Array]" === Object.prototype.toString.call(moduleAchieve.loadComplete)){
-
-						forEach(moduleAchieve.loadComplete, function(item){
-							item(exports);
-						});
-
-						moduleAchieve.loadComplete.length = 0;
-
-					}
-
-					moduleAchieve.exports = exports;
-
-					moduleAchieve._factoryArgs = aParam;
+					});
 				}
+
+				aParam = _factoryArgs || [getExistExports, exports, module];
+				aParam.length = _factory.length;
+
+				exports = _factory.apply(this, aParam) || module.exports;
+				module.exports = exports;
+
+				module._factoryArgs = aParam;
 
 				// step 2:
 				this.requireExports.push(exports);
@@ -1167,6 +1081,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 				return this;
 			}
+
 		};
 
 		define = function(/*[id, ][dependencies, ]factory*/){
@@ -1184,9 +1099,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				requireInner
 			;
 
-			// 防止 直接调用 define 引发的挫感
-			if(requireCount === 0){
-				throw "Illegal invoke define";
+			if(requireCount === arrDefine.length){
+				return ;
 			}
 
 			// do nothings
@@ -1248,7 +1162,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 			}
 
-			arrDefine.push(function(instRequire, addProduct){
+			arrDefine.push(function(instRequire, instAdd){
 				var
 					_dependencies
 				;
@@ -1261,11 +1175,10 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				}
 
 				// handle mock id
-				id && confV.paths(id, addProduct.src);
+				id && confV.paths(id, instAdd.src);
 
 				// 保留激活链
-				addProduct.callAgain = function(instRequire, deps){
-
+				instAdd.callAgain = function(instRequire, deps){
 					// 拷贝依赖
 					if(!deps && _dependencies && _dependencies.length){
 						deps = [];
@@ -1274,7 +1187,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						});
 					}
 
-					instRequire.transferModule = addProduct;
+					instRequire.transferModule = instAdd;
 					instRequire.transferModule.__define = _factory;
 
 					if(deps && deps.length){
@@ -1287,16 +1200,15 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					}else{
 						instRequire.loadExports(_factory, "");
 					}
-
 				};
 
-				addProduct.callAgain(instRequire, dependencies);
+				instAdd.callAgain(instRequire, dependencies);
 
 			});
 
 		};
 
-		require = function(/*[dependence ,]callback*/){
+		require = function(/*[id ,][dependence ,]callback*/){
 			var
 				v5 = arguments[arguments.length - 1],
 				sType = typeof  v5
@@ -1313,7 +1225,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			}else if("string" === sType && 1 === arguments.length){
 				dances.add(v5);
 			}
-
 		};
 
 		confVar= {
@@ -1430,13 +1341,13 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				window.require = $require;
 				window.define = $define;
 
-				// 放弃 dances.amd exports 的 require 与 define 定义
 				if(true === bGiveUp){
 					exports.require = _require;
 					exports.define = _define;
 				}
 			}
 		})();
+
 
 		require.conf = conf;
 		define.amd = {};
