@@ -56,19 +56,99 @@
 					}
 				},
 
-				slice = uncurrying(Array.prototype.slice)
+				slice = uncurrying(Array.prototype.slice),
+
+				fnBindReady = undefined === document.createElement("script").onload ?
+					function(elem, fLoaded, scope){
+						var
+							fPreLoaded = "function" === typeof elem.onreadystatechange ?
+							elem.onreadystatechange :
+							false
+						;
+
+						if("function" === typeof fLoaded){
+							elem.onreadystatechange = function(){
+								if("loaded" === elem.readyState || "complete" === elem.readyState){
+									if(fPreLoaded){
+										fPreLoaded.call(scope);
+
+										// gc
+										fPreLoaded = null;
+									}
+									fLoaded.call(scope);
+
+									// gc
+									elem.onreadystatechange = null;
+									scope = elem = fLoaded = null;
+								}
+							};
+						}
+					} :
+
+					function(elem, fLoaded, scope){
+						var
+							fPreLoaded = "function" === typeof elem.onload ?
+							elem.onload :
+							false
+						;
+
+						if("function" === typeof fLoaded){
+							elem.onload = function(){
+								if(fPreLoaded){
+									fPreLoaded.call(scope);
+
+									//gc
+									fPreLoaded = null;
+								}
+								fLoaded.call(scope);
+
+								// gc
+								elem.onload = null;
+								scope = elem = fLoaded = null;
+							};
+						}
+					}
 			;
 
 			describe("define", function(){
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
 
 				it("双层引自一层", function(){
 					var getA, getB;
 
 					runs(function(){
-						require(["./src/define_basic/a-master", "./src/define_basic/b-master"], function(a, b){
-							getA = a;
-							getB = b;
-						});
+
+						iframeEl.setAttribute("data-name","双层引自一层");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["./src/define_basic/a-master", "./src/define_basic/b-master"], function(a, b){
+									getA = a;
+									getB = b;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -85,14 +165,35 @@
 				});
 
 				it("5层 define", function(){
+
 					var
 						getI
 					;
 
 					runs(function(){
-						require(["./src/define_depthMore/a-master"], function(inst){
-							getI = inst;
-						});
+
+						iframeEl.setAttribute("data-name","5层 define");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["./src/define_depthMore/a-master"], function(inst){
+									getI = inst;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -119,10 +220,28 @@
 					var getA, getB;
 
 					runs(function(){
-						require(["./src/define_paramDependencies/a-master", "./src/define_paramDependencies/b-master"], function(a, b){
-							getA = a;
-							getB = b;
-						});
+
+						iframeEl.setAttribute("data-name","paramDependencies");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl = w.document.createElement("script")
+							;
+
+							fnBindReady(jsEl, function(){
+								w.require(["./src/define_paramDependencies/a-master", "./src/define_paramDependencies/b-master"], function(a, b){
+									getA = a;
+									getB = b;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -146,17 +265,37 @@
 					;
 
 					runs(function(){
-						require(["./src/mul_require/a1", "./src/mul_require/~a1", "./src/mul_require/~~a1"], function(a, $a, $$a){
-							getA = slice(arguments,0);
-						});
 
-						require(["./src/mul_require/b1","./src/mul_require/~b1"], function(){
-							getB = slice(arguments,0);
-						});
+						iframeEl.setAttribute("data-name","multiple require");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
 
-						require(["./src/mul_require/c1"], function(res){
-							getC = res;
-						});
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["./src/mul_require/a1", "./src/mul_require/~a1", "./src/mul_require/~~a1"], function(a, $a, $$a){
+									getA = slice(arguments, 0);
+								});
+
+								w.require(["./src/mul_require/b1", "./src/mul_require/~b1"], function(){
+									getB = slice(arguments, 0);
+								});
+
+								w.require(["./src/mul_require/c1"], function(res){
+									getC = res;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -182,17 +321,37 @@
 					;
 
 					runs(function(){
-						require(["src/defineParamModOne/a-master"], function(v){
-							getA = v;
-						});
 
-						require(["src/defineParamModOne/a-master-branch"], function(v){
-							getB = v;
-						});
+						iframeEl.setAttribute("data-name","defineParamModOne");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
 
-						require(["src/defineParamModOne/a1"], function(v){
-							getC = v;
-						});
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["src/defineParamModOne/a-master"], function(v){
+									getA = v;
+								});
+
+								w.require(["src/defineParamModOne/a-master-branch"], function(v){
+									getB = v;
+								});
+
+								w.require(["src/defineParamModOne/a1"], function(v){
+									getC = v;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -201,9 +360,10 @@
 
 					runs(function(){
 						expect(getA.hasOwnProperty("a-master")).toEqual(true);
+						expect(getA["a-master"]).toEqual("a data belong a-master");
 						expect(getA["a-master-a1"]).toEqual("a data belong a-a1_____ a message form a2.js");
-						expect(getB.hasOwnProperty("a-master-branch")).toEqual(true);
 
+						expect(getB.hasOwnProperty("a-master-branch")).toEqual(true);
 						expect(getB["a-master-a1"]).toEqual("a data belong a-a1_____ a message form a2.js");
 						expect(getB["a-x"]).toEqual("fiv");
 					})
@@ -217,13 +377,34 @@
 					;
 
 					runs(function(){
-						require(["src/defineParamModTwo/a-master"], function(v){
-							getA = v;
-						});
 
-						require(["src/defineParamModTwo/a-master-branch"], function(v){
-							getB = v;
-						});
+						iframeEl.setAttribute("data-name","defineParamModTwo");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["src/defineParamModTwo/a-master"], function(v){
+									getA = v;
+								});
+
+								w.require(["src/defineParamModTwo/a-master-branch"], function(v){
+									getB = v;
+								});
+
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -233,6 +414,7 @@
 					runs(function(){
 						expect(getA.hasOwnProperty("a-master")).toEqual(true);
 						expect(getA["a-master-a1"]).toEqual("a data belong a-a1_____ a message form a2.js");
+
 						expect(getB.hasOwnProperty("a-master-branch")).toEqual(true);
 						expect(getB["a-master-a1"]).toEqual("a data belong a-a1_____ a message form a2.js");
 						expect(getB["a-x"]).toEqual("fiv");
@@ -246,11 +428,31 @@
 					;
 
 					runs(function(){
-						require(["src/defineID/define"], function(_){
-							require(["x-man"], function(_){
-								getA = _;
-							})
-						})
+
+						iframeEl.setAttribute("data-name", "defineID");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["src/defineID/define"], function(_){
+									w.require(["x-man"], function(_){
+										getA = _;
+									})
+								})
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -266,16 +468,46 @@
 			});
 
 			describe("conf", function(){
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
+
 				it("baseUrl", function(){
 					var getA;
 
 					runs(function(){
-						require.conf({
-							"baseUrl": "src/conf/"
-						});
-						require(["baseURl"],function(_){
-							getA = _;
-						});
+
+						iframeEl.setAttribute("data-name", "baseUrl");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require.conf({
+									"baseUrl": "src/conf/"
+								});
+								w.require(["baseURl"], function(_){
+									getA = _;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -292,29 +524,50 @@
 				it("paths", function(){
 					var
 						getA,
-						getB
+						getB,
+						iWin
 					;
 
 					runs(function(){
 
-						define.amd.jQuery = true;
+						iframeEl.setAttribute("data-name", "paths");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
 
-						require
-							.conf("paths", {
-								jq: "src/conf/jquery-1.7.2.min.js",
-								us: "src/conf/underscore-min.js"
-							})
-							.conf("shim", {
-								us: {
-									exports: "_"
-								}
-							})
-						;
+							iWin = w;
+							jsEl = w.document.createElement("script");
 
-						require(["jq", "us"], function($, _){
-							getA = $("body");
-							getB = _.toArray(getA)[0];
-						});
+							fnBindReady(jsEl, function(){
+								w.define.amd.jQuery = true;
+
+								w.require
+									.conf("paths", {
+										jq: "src/conf/jquery-1.7.2.min.js",
+										us: "src/conf/underscore-min.js"
+									})
+									.conf("shim", {
+										us: {
+											exports: "_"
+										}
+									})
+								;
+
+								w.require(["jq", "us"], function($, _){
+									getA = $("body");
+									getB = _.toArray(getA)[0];
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -322,8 +575,8 @@
 					}, "path fail", 550);
 
 					runs(function(){
-						expect(getA[0] === document.body).toEqual(true);
-						expect(getB === document.body).toEqual(true);
+						expect(getA[0] === iWin.document.body).toEqual(true);
+						expect(getB === iWin.document.body).toEqual(true);
 					});
 
 				});
@@ -331,23 +584,54 @@
 			});
 
 			describe("fix bugs in 2.0", function(){
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
 
 				it("call factory the same", function(){
 
 					var
 						getA,
-						getB
+						getB,
+						iWin
 					;
 
 					runs(function(){
 
-						require(["./src/mul_require_sameFile/a"], function(_){
-							getA = _;
-						});
+						iframeEl.setAttribute("data-name", "call factory the same");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
 
-						require(["./src/mul_require_sameFile/a"], function(_){
-							getB = _;
-						});
+							iWin = w;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(["./src/mul_require_sameFile/a"], function(_){
+									getA = _;
+								});
+
+								w.require(["./src/mul_require_sameFile/a"], function(_){
+									getB = _;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -359,7 +643,7 @@
 						expect(getB.reflect("second")).toEqual("second");
 						expect(getA.reflect === getB.reflect).toEqual(true);
 
-						expect(dances.add.__view()["./src/mul_require_sameFile/a"].__TEST_CALL_THE_SAME).toEqual(1);
+						expect(iWin.dances.add.__view()["./src/mul_require_sameFile/a"].__TEST_CALL_THE_SAME).toEqual(1);
 
 					});
 
@@ -376,21 +660,39 @@
 
 					runs(function(){
 
-						require(["./src/mul_require_mix/mod1"], function($){
-							getA = $;
-						});
+						iframeEl.setAttribute("data-name", "call mix");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
 
-						require(["./src/mul_require_mix/mod2", "./src/mul_require_mix/mod1"], function($1, $2){
-							getB = $1;
-						});
+							jsEl = w.document.createElement("script");
 
-						require(["./src/mul_require_mix/mod2", "./src/mul_require_mix/mod3"], function($1, $2){
-							getC = $2;
-						});
+							fnBindReady(jsEl, function(){
+								w.require(["./src/mul_require_mix/mod1"], function($){
+									getA = $;
+								});
 
-						require(["./src/mul_require_mix/mod3", "./src/mul_require_mix/mod1"], function($1, $2){
-							getD = $2;
-						});
+								w.require(["./src/mul_require_mix/mod2", "./src/mul_require_mix/mod1"], function($1, $2){
+									getB = $1;
+								});
+
+								w.require(["./src/mul_require_mix/mod2", "./src/mul_require_mix/mod3"], function($1, $2){
+									getC = $2;
+								});
+
+								w.require(["./src/mul_require_mix/mod3", "./src/mul_require_mix/mod1"], function($1, $2){
+									getD = $2;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
 
 					});
 
@@ -410,24 +712,54 @@
 
 			describe("shim", function(){
 
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
+
 				it("自定模块 dances.color", function(){
 					var
 						getA
 					;
 
 					runs(function(){
-						require.conf({
-							shim: {
-								color: {
-									path   : "src/conf/dances.color.js",
-									exports: "dances.color"
-								}
-							}
-						});
 
-						require(["color"], function(color){
-							getA = color("#fffff");
-						});
+						iframeEl.setAttribute("data-name", "自定模块 dances.color");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require.conf({
+									shim: {
+										color: {
+											path   : "src/conf/dances.color.js",
+											exports: "dances.color"
+										}
+									}
+								});
+
+								w.require(["color"], function(color){
+									getA = color("#fffff");
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
 
 					waitsFor(function(){
@@ -446,18 +778,37 @@
 					;
 
 					runs(function(){
-						require.conf({
-							shim: {
-								$14: {
-									path   : "src/shim/jquery-1.4.4.min",
-									exports: "jQuery"
-								}
-							}
-						});
 
-						require(["$14"], function($){
-							getA = $;
-						});
+						iframeEl.setAttribute("data-name", "jquery_1.4");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require.conf({
+									shim: {
+										$14: {
+											path   : "src/shim/jquery-1.4.4.min",
+											exports: "jQuery"
+										}
+									}
+								});
+
+								w.require(["$14"], function($){
+									getA = $;
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
 
 					});
 

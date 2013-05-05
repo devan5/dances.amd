@@ -22,6 +22,7 @@ with dances
 			+ dances.add() 增加一个实现, 若 .add 最后一个参数为 布尔值true, 则会省去倒数, 直接运行.
 			+ 解决 mul 调用 factory 被调用多次.
 			+ 重写 帮助文档
+			+ 重写 unit TEST 防止互相干扰
 			+ TODO 测试 不符合 ADM 规范: "显示地 抛出错误"
 		]
 
@@ -920,7 +921,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			url = id2path(id);
 
 			// requireRepo 只储存[路径]作为键名
-			if(requireRepo.hasOwnProperty(url)){
+			if(requireRepo.hasOwnProperty(url) && undefined !== requireRepo[url].exports){
 				return requireRepo[url].exports;
 
 			}else{
@@ -1143,6 +1144,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					aParam.length = _factory.length;
 
 					exports = _factory.apply(this, aParam) || moduleAchieve.exports;
+					moduleAchieve.exports = exports;
 
 					if(moduleAchieve.loadComplete && "[object Array]" === Object.prototype.toString.call(moduleAchieve.loadComplete)){
 
@@ -1154,9 +1156,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 					}
 
-					moduleAchieve.exports = exports;
 
-					moduleAchieve._factoryArgs = aParam;
+//					moduleAchieve._factoryArgs = aParam;
 				}
 
 				// step 2:
@@ -1233,6 +1234,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					while(requireInner = regRequire.exec(factoryPlain)){
 						dependencies.push(requireInner[2]);
 					}
+
 				}
 
 			}else{
