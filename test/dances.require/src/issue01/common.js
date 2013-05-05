@@ -14,7 +14,6 @@ require.conf({
 });
 
 // stable
-// TODO check All project to Erase below
 (function(){
 	dances.namespace("GLOBAL.oB");
 

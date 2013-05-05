@@ -467,7 +467,62 @@
 				});
 			});
 
-			describe("conf", function(){
+			describe("require", function(){
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
+
+				it("require invokeII",function(){
+					var
+						getA
+					;
+
+					runs(function(){
+
+						iframeEl.setAttribute("data-name", "require invokeII");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require(function(_){
+									getA = _("src/require_invokeII/a");
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
+					});
+
+					waitsFor(function(){
+						return getA
+					}, "require invokeII fail", 500);
+
+					runs(function(){
+						expect(getA).toEqual("ok fine with it");
+					});
+
+
+				});
+
+			});
+
+			describe("conf", function() {
 				var iframeEl;
 
 				beforeEach(function(){
@@ -577,6 +632,58 @@
 					runs(function(){
 						expect(getA[0] === iWin.document.body).toEqual(true);
 						expect(getB === iWin.document.body).toEqual(true);
+					});
+
+				});
+
+				it("timeout", function(){
+					var
+						getA
+					;
+
+					runs(function(){
+
+						iframeEl.setAttribute("data-name", "paths");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+
+								w.require
+									.conf("timeout", 1)
+								;
+
+								w.require(["src/timeout/a"], function(_){
+									getA = _;
+								})
+									.error(function(){
+										getA = slice(arguments)
+									})
+								;
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
+					});
+
+					waitsFor(function(){
+						return getA;
+					}, "timeout fail", 500);
+
+					runs(function(){
+
+						expect(getA[0]).toEqual("timeout");
+
 					});
 
 				});
@@ -824,12 +931,69 @@
 
 
 				it("测试错误添加 非AMD 模块", function(){
-					// TODO
-					require(["src/shim/noAMD"], function(_){
-						$log(_)
+					var
+						getA
+					;
+
+					runs(function(){
+						iframeEl.setAttribute("data-name", "测试错误添加 非AMD 模块");
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+								w.require.conf("timeout", 500);
+
+								w.require(["src/shim/noAMD"], function(_){
+									getA = _;
+								})
+									.error(function(status, inst){
+										getA = slice(arguments);
+									})
+
+								;
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
 					});
+
+					waitsFor(function(){
+						return getA;
+					}, "测试错误添加 非AMD 模块 fail", 500);
+
+					runs(function(){
+						expect(getA[0]).toEqual("noAMD");
+						expect(getA[1].exports).toEqual(undefined);
+						expect(getA[1].src).toEqual("src/shim/noAMD.js");
+					});
+
 				});
 
+			});
+
+			describe("miscellaneous", function(){
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
+
+				it("恶意调用 define", function(){
+				});
 			});
 
 			execJasmine();

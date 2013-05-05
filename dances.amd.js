@@ -7,7 +7,7 @@ with dances
 
 	firstDate: 2013.04.09
 
-	lastDate: 2013.05.05
+	lastDate: 2013.05.06
 
 	require: [
 	],
@@ -23,7 +23,7 @@ with dances
 			+ 解决 mul 调用 factory 被调用多次.
 			+ 重写 帮助文档
 			+ 重写 unit TEST 防止互相干扰
-			+ TODO 测试 不符合 ADM 规范: "显示地 抛出错误"
+			+ 测试 不符合 ADM 规范: "显示地 抛出错误"
 		]
 
 	}
@@ -211,8 +211,7 @@ _______*/
 
 	});
 
-	// TODO 可以实现以下模式
-	require(function(){
+	require(function(require){
 		var
 			$17 = require("jQuery_1.7"),
 			$14 = require("jQuery_1.9")
@@ -261,44 +260,46 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 		return eval.apply(null, arguments);
 	};
 
-	// $log
-	window.$log = (function(){
-		var
-			$log,
-			logRepo = {}
-		;
+}
 
-		$log = Boolean;
+// $log
+window.$log = (function(){
+	var
+		$log,
+		logRepo = {}
+	;
 
-		if(window.console && window.console.log){
-			$log = console.log;
+	$log = Boolean;
 
-			try{
-				$log("_____" + (new Date).toString() + "_____");
+	if(window.console && window.console.log){
+		$log = console.log;
 
-			}catch(e){
-				$log = null;
-			}
+		try{
+			$log("_____" + (new Date).toString() + "_____");
 
-			$log || ($log = function(){ console.log.apply(console, arguments); }) && $log("_____" + (new Date).toString() + "_____");
-
-			window.$$log || (window.$$log = function(msg, method){
-				method = method || "log";
-
-				logRepo[method] || (logRepo[method] = console[method] ? console[method] : console.log);
-
-				"function" === typeof console[method] ?
-					logRepo[method].call(console, msg) :
-					logRepo[method](msg)
-				;
-
-			});
-
+		}catch(e){
+			$log = null;
 		}
 
-		return $log;
-	})();
-}
+		$log || ($log = function(){ console.log.apply(console, arguments); }) && $log("_____" + (new Date).toString() + "_____");
+
+		window.$$log || (window.$$log = function(msg, method){
+			method = method || "log";
+
+			logRepo[method] || (logRepo[method] = console[method] ? console[method] : console.log);
+
+			"function" === typeof console[method] ?
+				logRepo[method].call(console, msg) :
+				logRepo[method](msg)
+			;
+
+		});
+
+	}
+
+	return $log;
+})();
+
 
 (function(dances){
 	"use strict";
@@ -853,9 +854,9 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			require,
 			Require,
 
-			requireCount = 0,
 			arrDefine = [],
 			getExistExports,
+			getInlineDependencies,
 
 			requireRepo = dances.add.__view(),
 
@@ -889,6 +890,9 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					}
 
 				}
+			,
+
+			protectDefine = 0
 
 		;
 
@@ -929,6 +933,32 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			}
 		};
 
+		getInlineDependencies = function(_factory){
+			var
+				factoryPlain = _factory.toString(),
+
+			 	regRequire = oREG.requireAtom.exec(factoryPlain)[1],
+
+				requireInner,
+
+				dependencies = []
+			 ;
+
+			regRequire = regRequire.replace("$", "\\$");
+
+			regRequire = new RegExp(regRequire + "\\s*\\(\\s*([\"\'])([^\\s\'\"]+)\\1\\s*\\)", "g");
+
+			// 清除注释
+			factoryPlain = factoryPlain.replace(oREG.commentSingle, "").replace(oREG.commentBlock, "");
+
+			// detect require in define scope
+			while(requireInner = regRequire.exec(factoryPlain)){
+				dependencies.push(requireInner[2]);
+			}
+
+			return dependencies;
+		};
+
 		Require = {
 
 			init: function(reqChain){
@@ -947,11 +977,20 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 				this.requireExports = [];
 				this.loadComplete = [];
+				this.errorArr = [];
 				this.requireCallback = callback;
 
 				this.dependencies = args.pop();
+
 				if("[object Array]" !== Object.prototype.toString.call(this.dependencies)){
-					this.dependencies = [];
+					if(callback.length){
+						this.dependencies = getInlineDependencies(callback);
+						this.requireExports.push(getExistExports);
+
+					}else{
+						this.dependencies = [];
+					}
+
 				}
 
 				this.add = dances.add();
@@ -983,7 +1022,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 						}else if(arrDefine.length){
 							arrDefine.shift()(_this, addProduct);
 
-						}else{
+						}else if(addProduct.amd){
+
 							if("[object Array]" !== Object.prototype.toString.call(addProduct.loadComplete)){
 								addProduct.loadComplete = [];
 							}
@@ -993,6 +1033,8 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 								_this.require();
 							});
 
+						}else{
+							_this.callError("noAMD", addProduct);
 						}
 
 					});
@@ -1024,7 +1066,9 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					__time,
 
 					instShim,
-					fShim
+					fShim,
+
+					_this = this
 				;
 
 				switch(_id){
@@ -1072,30 +1116,43 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 							// 超时管理
 							if(confVar.timeout){
 								__time = setTimeout(function(){
-									$$log("load [" + url + "] has failed", "error");
+									protectDefine--;
+									_this.callError("timeout", _this.add);
+									_this.add.status = "timeout";
+									$$log("[" + url + "]: load has failed", "error");
 								}, confVar.timeout);
 							}
 
 							// shim
 							(instShim = confVar.shim[id]) && (fShim = function(){
-								requireCount++;
+								protectDefine++;
 								define(instShim.deps || [], function(){
-									requireCount--;
+									protectDefine--;
 									return dances.$eval(instShim.exports);
 								});
 							});
 
-							requireCount++;
+							this.add.status = "requesting";
+							protectDefine++;
+
 							this.add.add(url, function(addProduct){
-								requireCount--;
 
-								__time && clearTimeout(__time);
+								if("timeout" !== addProduct.status){
+									_this.add.status = "loaded";
 
-								fShim && fShim();
+									protectDefine--;
+									__time && clearTimeout(__time);
 
-								callback(addProduct);
+									fShim && fShim();
 
-								instShim = null;
+									callback(addProduct);
+
+									// gc
+									callback =
+										instShim = null
+									;
+
+								}
 
 							});
 						}
@@ -1143,6 +1200,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 					aParam = _factoryArgs || [getExistExports, exports, moduleAchieve];
 					aParam.length = _factory.length;
 
+					// 以下两行不得插入其他代码
 					exports = _factory.apply(this, aParam) || moduleAchieve.exports;
 					moduleAchieve.exports = exports;
 
@@ -1156,7 +1214,6 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 					}
 
-
 //					moduleAchieve._factoryArgs = aParam;
 				}
 
@@ -1165,6 +1222,43 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 				// step 3: 继续 require 依赖队列
 				this.require();
+
+				return this;
+			},
+
+
+
+			callError: function(status, addProduct){
+				this.errorArr.length && forEach(this.errorArr, function(err){
+					err(status, addProduct);
+				});
+
+				return this;
+			},
+
+			// 暴露给使用者
+			// 添加错误信息
+			error: function(fn, bDel){
+				var
+					base,
+					len
+				;
+
+				if("function" === typeof fn){
+					if(bDel){
+						base = this.errorArr;
+						len = base.length;
+						while(len--){
+							if(fn === base[len]){
+								base.splice(1, len);
+								break;
+							}
+						}
+
+					}else{
+						this.errorArr.push(fn);
+					}
+				}
 
 				return this;
 			}
@@ -1177,21 +1271,20 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				id,
 				dependencies,
 				_factoryParam,
-				_factory,
-
-				factoryPlain,
-				regRequire,
-
-				requireInner
+				_factory
 			;
 
 			// 防止 直接调用 define 引发的挫感
-			if(requireCount === 0){
-				throw "Illegal invoke define";
+			if(protectDefine === 0){
+				$$log("Timeout or Illegal_Invoke_Define", "error");
+				return;
 			}
 
 			// do nothings
-			if(0 === args.length) {throw "define() expect a function/object as factory at least";}
+			if(0 === args.length) {
+				$$log("define() expect a function/object as factory at least", "error");
+				return ;
+			}
 
 			// step 1.1: 找到工厂方法
 			_factory = args.pop();
@@ -1217,24 +1310,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 				// step 3.1: 寻找 define工厂方法中的依赖
 				if(!dependencies && _factory.length){
-					dependencies = [];
-
-					factoryPlain = _factory.toString();
-
-					regRequire = oREG.requireAtom.exec(factoryPlain)[1];
-
-					regRequire = regRequire.replace("$", "\\$");
-
-					regRequire = new RegExp(regRequire + "\\s*\\(\\s*([\"\'])([^\\s\'\"]+)\\1\\s*\\)", "g");
-
-					// 清除注释
-					factoryPlain = factoryPlain.replace(oREG.commentSingle, "").replace(oREG.commentBlock, "");
-
-					// detect require in define scope
-					while(requireInner = regRequire.exec(factoryPlain)){
-						dependencies.push(requireInner[2]);
-					}
-
+					dependencies = getInlineDependencies(_factory);
 				}
 
 			}else{
@@ -1251,6 +1327,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 			}
 
 			arrDefine.push(function(instRequire, addProduct){
+				addProduct.amd = true;
 				var
 					_dependencies
 				;
@@ -1301,12 +1378,15 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 		require = function(/*[dependence ,]callback*/){
 			var
 				v5 = arguments[arguments.length - 1],
-				sType = typeof  v5
+				sType = typeof  v5,
+
+				require
+
 			;
 
 			if("function" === sType){
-				if(arguments.length > 1){
-					create(Require).init(arguments);
+				if(arguments.length > 1 || v5.length){
+					require = create(Require).init(arguments);
 
 				}else{
 					v5();
@@ -1316,6 +1396,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 				dances.add(v5);
 			}
 
+			return require;
 		};
 
 		confVar= {
@@ -1418,6 +1499,9 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 
 			return this;
 		};
+
+		// 配置时间 默认是 15 秒
+		conf("timeout", 15000);
 
 		// noConflict
 		require.noConflict = (function(){

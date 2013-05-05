@@ -28,7 +28,6 @@ function addcart(buynow)
 		return false;
 	}
 
-	// TODO check issue services return negative
 	if(10000 < buycount){
 		alert("购买数量已超过产品库存量！");
 		return false;
@@ -70,7 +69,6 @@ function addcart(buynow)
 $(document)
 
 	// 购物车关闭按钮 很遗憾.. 这样的模式
-	// TODO 优化购物车窗体组建
 	.delegate(".POP_E-close","click",function(){
 		$(this).parents(".layBox").hide();
 	})
@@ -579,7 +577,6 @@ dances.queue
 					},
 
 					fail: function(data){
-						// TODO alertHD
 						alert(data.msg || "添加失败");
 
 						5 === data.errorType && HUI.login.show();
