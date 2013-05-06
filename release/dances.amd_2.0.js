@@ -1358,7 +1358,7 @@ if ("function" !== typeof window.dances &&  "object" !== typeof window.dances){
 		;
 
 		window.define =
-			require.define =
+			exports.define =
 				define
 		;
 
