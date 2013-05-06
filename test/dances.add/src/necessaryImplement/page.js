@@ -1,0 +1,1 @@
+﻿NS.methodA("by page.js");
