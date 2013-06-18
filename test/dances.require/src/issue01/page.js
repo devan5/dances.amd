@@ -659,7 +659,7 @@ dances.queue
 	.add(function(){
 		define.amd.dsPin = true;
 
-		require(["http://fed.www.100hg.com/js/dances/dances.pin_1.0"], function(_){
+		require(["http://fed.www.100hg.com/js/dances/dances.pin_1.0.min"], function(_){
 			_(".j_test01", {
 
 				inCallback: function(){
