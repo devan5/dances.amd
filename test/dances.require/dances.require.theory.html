@@ -1,0 +1,148 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<title></title>
+	<meta charset="UTF-8">
+	<script type="text/javascript" src="../../dances.amd.js"></script>
+	<script type="text/javascript" src="../../../dances.path.js"></script>
+</head>
+<body>
+	<h1>并发异步加载</h1>
+	<p>
+		请打开 debuger, 查看.
+	</p>
+	<p id="results">
+		logs: <br>
+
+	</p>
+
+	<script type="text/javascript">
+		window.eReady = undefined === document.createElement("script").onload ?
+			function(elem, fLoaded, scope){
+				var
+					fPreLoaded = "function" === typeof elem.onreadystatechange ?
+						elem.onreadystatechange :
+						false
+					;
+
+				if("function" === typeof fLoaded){
+					elem.onreadystatechange = function(){
+						if("loaded" === elem.readyState || "complete" === elem.readyState){
+							if(fPreLoaded){
+								fPreLoaded.call(scope || elem);
+								fPreLoaded = null;
+							}
+							fLoaded.call(scope || elem);
+							elem.onreadystatechange = null;
+							scope = elem = fLoaded = null;
+						}
+					};
+				}
+			} :
+
+			function(elem, fLoaded, scope){
+				var
+					fPreLoaded = "function" === typeof elem.onload ?
+						elem.onload :
+						false
+					;
+
+				if("function" === typeof fLoaded){
+					elem.onload = function(){
+						if(fPreLoaded){
+							fPreLoaded.call(scope || elem);
+							fPreLoaded = null;
+						}
+						fLoaded.call(scope || elem);
+						elem.onload = null;
+						scope = elem = fLoaded = null;
+					};
+				}
+			}
+		;
+
+		window.createJs = function(src, win){
+			var jsEl;
+
+			win = win ?
+				top === win.top ?
+					win :
+					window
+				:
+				window
+			;
+
+			jsEl = win.document.createElement("script");
+
+			win.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+			jsEl.src = src;
+
+			return jsEl;
+		};
+
+		window.print = (function(){
+			var
+				_promise
+			;
+
+			return function(){
+				var
+					args = Array.prototype.slice.call(arguments, 0),
+					msg,
+					elem = args.pop()
+				;
+
+				if("string" !== typeof elem.nodeName || "number" !== typeof elem.nodeType){
+					args.push(elem);
+					elem = null;
+				}
+
+				msg = args.join(" ");
+				elem = elem || document.body;
+				elem.appendChild(document.createTextNode(msg));
+				elem.appendChild(document.createElement("br"));
+
+			};
+		})();
+
+
+	</script>
+
+	<script type="text/javascript">
+		define.amd.dancesJs = true;
+
+		require.conf("baseUrl", "../../../")
+			(["dJs"], function(_){
+				var
+					path = "src/dances.require.theory/",
+					_print = window._print = _.bindAfter(print, document.getElementById("results"))
+				;
+
+				eReady(createJs(path + "a.js"), function(){
+					var msg = "a.js callback________";
+					$log(msg);
+					_print(msg);
+				});
+				eReady(createJs(path + "b.js"), function(){
+					var msg = "b.js callback________";
+					$log(msg);
+					_print(msg);
+				});
+				eReady(createJs(path + "c.js"), function(){
+					var msg = "c.js callback________";
+					$log(msg);
+					_print(msg);
+				});
+				eReady(createJs(path + "d.js"), function(){
+					var msg = "d.js callback________";
+					$log(msg);
+					_print(msg);
+				});
+
+			})
+		;
+
+	</script>
+</body>
+</html>

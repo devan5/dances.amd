@@ -1,3 +1,10 @@
+# dances. amd
+异步模块加载与定义. .amd 是 dances 核心. 
+
+## 包含模块
++ dances.add
++ dances.define
+
 # dances.add
 定位于脚本加载器. 语法极其灵活.  
 

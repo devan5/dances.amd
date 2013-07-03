@@ -7,7 +7,7 @@ with dances
 
 	firstDate: 2013.04.09
 
-	lastDate: 2013.06.18
+	lastDate: 2013.07.02
 
 	require: [
 	],
@@ -69,6 +69,8 @@ window.$log = (function(){
 
 		});
 
+	}else{
+		window.$$log = function(){return Array.prototype.slice.call(arguments, 0).join(", ")};
 	}
 
 	return $log;
@@ -113,6 +115,11 @@ window.$log = (function(){
 
 		toString = uc(Object.prototype.toString)
 
+	;
+
+
+	var
+		_hub = {}
 	;
 
 	// dances.add
@@ -247,17 +254,18 @@ window.$log = (function(){
 						el.setAttribute(item[0], item[1]);
 					}
 
+					// arrDefine => fWait2Call: 第二形参 就是它!
 					inst = {
-						El  : el,
-						type: fileType,
+						El      : el,
+						type    : fileType,
 
-						srcProp: factors.srcProp,
-						src    : _src,
+						srcProp : factors.srcProp,
+						src     : _src,
 
 						isAppend: false,
 						isReady : false,
 
-						append: fAppend
+						append  : fAppend
 					};
 
 					//		inst.El.async = true;
@@ -442,7 +450,7 @@ window.$log = (function(){
 
 				stack = this.stack;
 
-				// step 1: 嗅探第一位 url ,并初始化
+				// step 1: 嗅探第一位 src ,并初始化
 				while(!src){
 					inst = undefined;
 					src = stack.shift();
@@ -614,9 +622,20 @@ window.$log = (function(){
 			return this;
 		};
 
-		exprots[name || "add"] = add;
+		exprots.add = add;
 
-		add.version = "2.0";
+		add.version = "2.1";
+
+		// 私有通信
+		_hub.add = {
+			map: {
+				factory: AddFactory
+			},
+
+			get: function(v){
+				return this.map.hasOwnProperty(v) ? this.map[v] : false;
+			}
+		};
 
 	})(dances);
 
@@ -632,15 +651,13 @@ window.$log = (function(){
 			getExistExports,
 			getInlineDependencies,
 
-			requireRepo = dances.add.__view(),
+			commonRepo = dances.add.__view(),
 
 			oREG,
 
 			confVar,
 			conf,
 			confV,
-
-			id2path,
 
 			trim = String.prototype.trim ?
 				uc(String.prototype.trim) :
@@ -679,7 +696,7 @@ window.$log = (function(){
 
 		window.arrDefine = arrDefine;
 
-		id2path = function(id){
+		function id2path(id){
 
 			// step 1: 嗅探是否有假名(模块id), 假名对应路径
 			id = confVar.paths[id] || id;
@@ -691,16 +708,16 @@ window.$log = (function(){
 			;
 
 			return id;
-		};
+		}
 
 		getExistExports = function(id){
-			var url;
+			var src;
 
-			url = id2path(id);
+			src = id2path(id);
 
-			// requireRepo 只储存[路径]作为键名
-			if(requireRepo.hasOwnProperty(url) && undefined !== requireRepo[url].exports){
-				return requireRepo[url].exports;
+			// commonRepo 只储存[路径]作为键名
+			if(commonRepo.hasOwnProperty(src) && undefined !== commonRepo[src].exports){
+				return commonRepo[src].exports;
 
 			}else{
 				throw "require doesn't load [" + id + "] module;";
@@ -769,8 +786,6 @@ window.$log = (function(){
 
 				this.add = dances.add();
 
-				this.require();
-
 				return this;
 			},
 
@@ -835,7 +850,7 @@ window.$log = (function(){
 			requireAtom: function(id, callback){
 				var
 					_id = id.toLowerCase(),
-					url,
+					src,
 
 					__time,
 
@@ -873,12 +888,12 @@ window.$log = (function(){
 
 						*/
 
-						url = id2path(id);
+						src = id2path(id);
 
 						// switch 2: 寻找是否已经加载
-						if(requireRepo.hasOwnProperty(url) && requireRepo[url].exports){
+						if(commonRepo.hasOwnProperty(src) && commonRepo[src].exports){
 
-							this.requireExports.push(requireRepo[url].exports);
+							this.requireExports.push(commonRepo[src].exports);
 
 							// 继续 require 依赖队列
 							this.require();
@@ -893,7 +908,7 @@ window.$log = (function(){
 									protectDefine--;
 									_this.callError("timeout", _this.add);
 									_this.add.status = "timeout";
-									$$log("[" + url + "]: load has failed", "error");
+									$$log("[" + src + "]: load has failed", "error");
 								}, confVar.timeout);
 							}
 
@@ -909,12 +924,11 @@ window.$log = (function(){
 							this.add.status = "requesting";
 							protectDefine++;
 
-							this.add.add(url, function(addProduct){
+							this.add.add(src, function(addProduct){
 
 								if("timeout" !== addProduct.status){
 									_this.add.status = "loaded";
 
-									protectDefine--;
 									__time && clearTimeout(__time);
 
 									fShim && fShim();
@@ -948,7 +962,6 @@ window.$log = (function(){
 					exports = moduleAchieve.exports;
 
 				}else{
-					// step 1: 执行工厂函数
 					exports = moduleAchieve.exports = {};
 
 					if(_factoryArgs && _factoryArgs.length){
@@ -991,16 +1004,8 @@ window.$log = (function(){
 //					moduleAchieve._factoryArgs = aParam;
 				}
 
-				// step 2:
-				this.requireExports.push(exports);
-
-				// step 3: 继续 require 依赖队列
-				this.require();
-
-				return this;
+				return exports;
 			},
-
-
 
 			callError: function(status, addProduct){
 				this.errorArr.length && forEach(this.errorArr, function(err){
@@ -1040,25 +1045,36 @@ window.$log = (function(){
 
 		define = function(/*[id, ][dependencies, ]factory*/){
 			var
-				args = slice(arguments, 0),
+				args,
 
-				id,
+				sModuleId,
 				dependencies,
 				_factoryParam,
-				_factory
+				_factory,
+
+				bMulDefine
 			;
 
 			// 防止 直接调用 define 引发的挫感
+			// 指定 id 可以多重调用
 			if(protectDefine === 0){
-				$$log("Timeout or Illegal_Invoke_Define", "error");
-				return;
+				if("string" === typeof arguments[0]){
+					bMulDefine = true;
+
+				}else{
+					$$log("Timeout or Illegal_Invoke_Define", "error");
+					return;
+				}
 			}
 
 			// do nothings
-			if(0 === args.length) {
+			if(0 === arguments.length) {
 				$$log("define() expect a function/object as factory at least", "error");
 				return ;
 			}
+
+			args = slice(arguments, 0);
+			bMulDefine || protectDefine--;
 
 			// step 1.1: 找到工厂方法
 			_factory = args.pop();
@@ -1070,7 +1086,7 @@ window.$log = (function(){
 					dependencies = args.pop();
 
 					if("string" === typeof dependencies){
-						id = dependencies;
+						sModuleId = dependencies;
 						dependencies = undefined;
 
 					}else if("[object Array]" !== toString(dependencies)){
@@ -1078,7 +1094,7 @@ window.$log = (function(){
 
 					}else{
 						_factoryParam = true;
-						id = "string" === typeof (id = args.pop()) ? id : undefined;
+						sModuleId = "string" === typeof (sModuleId = args.pop()) ? sModuleId : undefined;
 					}
 				}
 
@@ -1096,15 +1112,19 @@ window.$log = (function(){
 					}
 				})(_factory);
 
-				id = "string" === typeof (id = args.pop()) ? id : undefined;
+				sModuleId = "string" === typeof (sModuleId = args.pop()) ? sModuleId : undefined;
 
 			}
 
-			arrDefine.push(function(instRequire, addProduct){
-				addProduct.amd = true;
+			var fWait2Call;
+
+			fWait2Call = function(instRequire, addProduct, bMulDefine){
 				var
 					_dependencies
 				;
+
+				// 做一个 标志
+				addProduct.amd = true;
 
 				if(dependencies && dependencies.length){
 					_dependencies = [];
@@ -1114,7 +1134,7 @@ window.$log = (function(){
 				}
 
 				// handle mock id
-				id && confV.paths(id, addProduct.src);
+				sModuleId && confV.paths(sModuleId, addProduct.src);
 
 				// 保留激活链
 				addProduct.callAgain = function(instRequire, deps){
@@ -1134,18 +1154,47 @@ window.$log = (function(){
 
 						// 开启 define中 dependence 队列
 						require(deps, function(){
-							instRequire.loadExports(_factory, _factoryParam && arguments);
+							instRequire.requireExports.push(
+								instRequire.loadExports(_factory, _factoryParam && arguments)
+							);
+							bMulDefine || instRequire.require();
 						});
 
 					}else{
-						instRequire.loadExports(_factory, "");
+						instRequire.requireExports.push(
+							instRequire.loadExports(_factory, "")
+						);
+						bMulDefine || instRequire.require();
 					}
 
 				};
 
 				addProduct.callAgain(instRequire, dependencies);
 
-			});
+			};
+
+			if(bMulDefine){
+				(function(){
+					var
+						instRequire,
+						addProduct
+					;
+
+					// 借用 dances.add AddFactory
+					addProduct = _hub.add.get("factory")(sModuleId);
+
+					// config id&path
+					addProduct.src = sModuleId.replace(/\.[\w\d]+$/, "");
+
+					// fake normal instRequire
+					instRequire = create(Require).init([function(){}]);
+
+					fWait2Call(instRequire, addProduct, bMulDefine);
+
+				})();
+			}else{
+				arrDefine.push(fWait2Call);
+			}
 
 		};
 
@@ -1155,12 +1204,12 @@ window.$log = (function(){
 				sType = typeof  v5,
 
 				require
-
 			;
 
 			if("function" === sType){
 				if(arguments.length > 1 || v5.length){
 					require = create(Require).init(arguments);
+					require.require();
 
 				}else{
 					v5();
@@ -1176,11 +1225,11 @@ window.$log = (function(){
 		confVar= {
 			baseUrl: "",
 
-			paths: {},
+			paths  : {},
 
 			timeout: 0,
 
-			shim: {
+			shim   : {
 				demo5: {
 					deps   : [],
 					exports: "_5"
@@ -1197,19 +1246,27 @@ window.$log = (function(){
 
 			// path 就有可能受到 baseUrl 影响
 			// 但是有3点 可回避 baseUrl 影响
+
+			/**
+			 * @example
+			 * .paths("id", "src");
+			 * .paths({
+			 *     id: "src"
+			 * });
+			 */
 			paths: function(){
 				var
 					args = slice(arguments, 0),
-					k = args.shift()
+					sModuleId = args.shift()
 				;
 
-				if("string" === typeof k){
-					confVar.paths[k] = args.shift();
+				if("string" === typeof sModuleId){
+					confVar.paths[sModuleId] = args.shift();
 
-				}else if("[object Object]" === toString(k)){
-					for(var prop in k){
-						if(k.hasOwnProperty(prop)){
-							confVar.paths[prop] = k[prop];
+				}else if("[object Object]" === toString(sModuleId)){
+					for(var prop in sModuleId){
+						if(sModuleId.hasOwnProperty(prop)){
+							confVar.paths[prop] = sModuleId[prop];
 						}
 					}
 				}

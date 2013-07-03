@@ -114,10 +114,7 @@
 
 				beforeEach(function(){
 					iframeEl = document.createElement("iframe");
-					iframeEl.style.width = "1px";
-					iframeEl.style.height = "1px";
-					iframeEl.style.overflow = "hidden";
-					iframeEl.style.border = "none";
+					iframeEl.style.display = "none";
 				});
 
 				it("双层引自一层", function(){
@@ -471,10 +468,7 @@
 
 				beforeEach(function(){
 					iframeEl = document.createElement("iframe");
-					iframeEl.style.width = "1px";
-					iframeEl.style.height = "1px";
-					iframeEl.style.overflow = "hidden";
-					iframeEl.style.border = "none";
+					iframeEl.style.display = "none";
 				});
 
 				it("require invokeII",function(){
@@ -521,15 +515,21 @@
 
 			});
 
-			describe("conf", function() {
+			describe("require ss", function(){
+				it("require css", function(){
+					// TODO
+				});
+				it("custom ss/less/sass", function(){
+					// TODO
+				});
+			});
+
+			describe("测试 conf 配置", function() {
 				var iframeEl;
 
 				beforeEach(function(){
 					iframeEl = document.createElement("iframe");
-					iframeEl.style.width = "1px";
-					iframeEl.style.height = "1px";
-					iframeEl.style.overflow = "hidden";
-					iframeEl.style.border = "none";
+					iframeEl.style.display = "none";
 				});
 
 				it("baseUrl", function(){
@@ -657,7 +657,7 @@
 									.conf("timeout", 1)
 								;
 
-								w.require(["src/timeout/a"], function(_){
+								w.require(["src/timeout/ajs"], function(_){
 									getA = _;
 								})
 									.error(function(){
@@ -694,10 +694,7 @@
 
 				beforeEach(function(){
 					iframeEl = document.createElement("iframe");
-					iframeEl.style.width = "1px";
-					iframeEl.style.height = "1px";
-					iframeEl.style.overflow = "hidden";
-					iframeEl.style.border = "none";
+					iframeEl.style.display = "none";
 				});
 
 				it("call factory the same", function(){
@@ -985,13 +982,75 @@
 
 				beforeEach(function(){
 					iframeEl = document.createElement("iframe");
-					iframeEl.style.width = "1px";
-					iframeEl.style.height = "1px";
-					iframeEl.style.overflow = "hidden";
-					iframeEl.style.border = "none";
+					iframeEl.style.display = "none";
 				});
 
 				it("恶意调用 define", function(){
+					// TODO
+				});
+			});
+
+			describe("扩展需求 extending", function(){
+				var iframeEl;
+
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.display = "none";
+				});
+
+				it("允许 指定id define 多次调用", function(){
+					var
+						$person,
+						$feder,
+						$designer
+					;
+
+					runs(function(){
+
+						iframeEl.setAttribute("data-name", "allow specific id multi define");
+
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow,
+								jsEl
+							;
+
+							jsEl = w.document.createElement("script");
+
+							fnBindReady(jsEl, function(){
+
+								// 实际情况会是 同步加载 src/specificIdMultiDefine/MultiDefine_pkg1.js
+								// 这里方便测试
+								w.dances.add("src/specificIdMultiDefine/MultiDefine_pkg1", function(){
+									$log("ok.....");
+									w.require(["person", "designer", "feder"], function(){
+										$person = arguments[0];
+										$feder = arguments[2];
+										$designer = arguments[1];
+									});
+
+								});
+							});
+
+							jsEl.src = "../../dances.amd.js";
+							w.document.getElementsByTagName("head")[0].appendChild(jsEl);
+
+						}, iframeEl);
+
+						document.body.appendChild(iframeEl);
+
+					});
+
+					waitsFor(function(){
+						return $person && $feder && $designer;
+					}, "specificIdMultiDefine time out", 550);
+
+					runs(function(){
+						expect($person.read("javascript")).toEqual("read this javascript");
+						expect($feder.build("webBank")).toEqual("build this webBank");
+						expect($designer.design("ios7")).toEqual("design this ios7");
+					});
+
 				});
 			});
 
