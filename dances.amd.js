@@ -7,7 +7,7 @@ with dances
 
 	firstDate: 2013.04.09
 
-	lastDate: 2013.07.02
+	lastDate: 2013.07.03
 
 	require: [
 	],
@@ -24,6 +24,13 @@ with dances
 			+ 重写 帮助文档
 			+ 重写 unit TEST 防止互相干扰
 			+ 测试 不符合 ADM 规范: "显示地 抛出错误"
+		],
+
+		"v2.2": [
+			+ 增加 Multi specific DefineId
+			+ // TODO 使用 Model_create_init 模式重写 工厂结构
+			+ // TODO 路径自动化
+			+ TODO require/seajs 跑测试单元
 		]
 
 	}
@@ -143,8 +150,14 @@ window.$log = (function(){
 
 			rootHeadEl,
 			rootDoc,
-			root = window
+			root = window,
+
+			oR
 		;
+
+		oR= {
+			hasExt: /\.[^\.]+$/
+		};
 
 		// fnBindReady
 		fnBindReady = undefined === document.createElement("script").onload ?
@@ -190,16 +203,16 @@ window.$log = (function(){
 		// step 2: 根据 src 创建新实例
 		AddFactory = (function(){
 			var
-				regSuffix = /\.([^\/\\\.]+)$/,
+				rMatchExt = /\.([^\/\\\.]+)$/,
 				fAppend,
 				headEl = document.getElementsByTagName("head")[0],
 				oAss
-				;
+			;
 
 			oAss = {
 				css: {
 					tagName: "link",
-					srcProp: "href",
+					srcPropName: "href",
 					attr   : [
 						["type", "text/css"],
 						["rel", "stylesheet"]
@@ -207,15 +220,16 @@ window.$log = (function(){
 				},
 				js : {
 					tagName: "script",
-					srcProp: "src",
+					srcPropName: "src",
 					attr   : [
 						["type", "text/javascript"]
 					]
 				}
 			};
 
+			// 开始加载 script
 			fAppend = function(){
-				this.El.setAttribute(this.srcProp, this.src);
+				this.El.setAttribute(this.srcPropName, this.src);
 				(rootHeadEl || headEl).appendChild(this.El);
 				this.isAppend = true;
 			};
@@ -223,49 +237,50 @@ window.$log = (function(){
 			return function(src){
 				var
 					inst,
-					el,
-					fileType,
-					factors,
-					_src,
+					domEl,
+					sExt,
+					oFactors,
+					intactSRC,
 
 					base,
 					len,
 					item
-					;
+				;
 
 				if(!addRepo.hasOwnProperty(src)){
 
-					_src = src;
-					fileType = regSuffix.exec(src);
-					fileType = fileType && fileType[1].toLowerCase();
-					if(!fileType || !oAss.hasOwnProperty(fileType)){
-						fileType = "js";
-						_src += ".js"
+					intactSRC = src;
+					// 匹配 src 后缀
+					sExt = rMatchExt.exec(src);
+					sExt = sExt && sExt[1].toLowerCase();
+					if(!sExt || !oAss.hasOwnProperty(sExt)){
+						sExt = "js";
+						intactSRC += ".js"
 					}
 
-					factors = oAss[fileType];
+					oFactors = oAss[sExt];
 
-					el = (rootDoc || document).createElement(factors.tagName);
+					domEl = (rootDoc || document).createElement(oFactors.tagName);
 
-					base = factors.attr;
+					base = oFactors.attr;
 					len = base.length;
 					while(len--){
 						item = base[len];
-						el.setAttribute(item[0], item[1]);
+						domEl.setAttribute(item[0], item[1]);
 					}
 
 					// arrDefine => fWait2Call: 第二形参 就是它!
 					inst = {
-						El      : el,
-						type    : fileType,
+						El         : domEl,
+						type       : sExt,
 
-						srcProp : factors.srcProp,
-						src     : _src,
+						srcPropName: oFactors.srcPropName,
+						src        : intactSRC,
 
-						isAppend: false,
-						isReady : false,
+						isAppend   : false,
+						isReady    : false,
 
-						append  : fAppend
+						append     : fAppend
 					};
 
 					//		inst.El.async = true;
@@ -283,21 +298,25 @@ window.$log = (function(){
 				}
 
 				// gc
-				el = null;
+				domEl = null;
 
 				return inst;
 			}
 
 		})();
 
+		// 关联 文件 加载逻辑
 		// src 和 callback 皆为 prevInst 的回调
 		// callback 先于 src 执行
+		// 优先返回 nextInst
 		AddingEngine = function(prevInst, src, callback){
 			var
 				nextInst
-				;
+			;
 
-			if(!prevInst) throw "AddingEngine expect correct ADD instance.";
+			if(!prevInst){
+				throw "AddingEngine expect correct ADD instance."
+			}
 
 			src && (nextInst = AddFactory(src));
 
@@ -311,18 +330,16 @@ window.$log = (function(){
 					fnBindReady(nextInst.El, function(){
 						nextInst.isReady = true;
 
-						prevInst =
-						nextInst = null
-						;
+						prevInst = nextInst = null;
 					});
 
 					nextInst.append();
 				}
 
-				// switch 2: prevInst 并没有添加至文档
+			// switch 2: prevInst 并没有添加至文档
 			}else if(!prevInst.isAppend){
 
-				// 清除定时器
+				// 清除 前一个实例 定时器
 				prevInst.time && clearTimeout(prevInst.time) && (prevInst.time = null);
 
 				if(nextInst && !nextInst.isAppend){
@@ -342,9 +359,7 @@ window.$log = (function(){
 						nextInst.append();
 					}
 
-					prevInst =
-					callback = null
-					;
+					prevInst = callback = null;
 				});
 
 				nextInst || (nextInst = prevInst);
@@ -362,7 +377,7 @@ window.$log = (function(){
 				nextInst.time = setTimeout(function(){
 					var
 						inst = nextInst.iInst
-						;
+					;
 
 					if(nextInst && !nextInst.isAppend){
 						inst.append();
@@ -372,8 +387,8 @@ window.$log = (function(){
 
 				}, 0);
 
-				//  prevInst 添加至文档 但仍没有加载完毕
-				// 时机要掌握~~
+			//  prevInst 添加至文档 但仍没有加载完毕
+			// 时机要掌握~~
 			}else{
 
 				if(nextInst && !nextInst.isAppend){
@@ -390,9 +405,7 @@ window.$log = (function(){
 						prevInst.isReady = true;
 						nextInst.append();
 
-						prevInst =
-						callback = null
-						;
+						prevInst = callback = null;
 					});
 				}
 
@@ -401,12 +414,13 @@ window.$log = (function(){
 			return nextInst || prevInst;
 		};
 
+		//
 		Add = {
 			add: function(){
 				var
 					_this = this,
 					bDirectly,
-					args = slice(arguments, 0)
+					args = slice(arguments)
 				;
 
 				this.time && clearTimeout(this.time);
@@ -421,21 +435,39 @@ window.$log = (function(){
 				this.stack = this.stack.concat(args);
 
 				if(bDirectly){
-					this.handleArgs();
+					this.handleStack();
 
 				}else{
 
 					this.time = setTimeout(function(){
-						_this.handleArgs();
+						_this.handleStack();
 					}, 0);
 				}
 
 				return this;
 			},
 
-			handleArgs: function(){
+			// 分组规则:
+			/*
+				(src, fn1, fn2, fn3)
+				=>
+				[src, fn1] [src, fn2] [src, fn3]
+			*/
+			/*
+				(src, fn, src2, src3)
+				=>
+				[src, fn, src2] [src2, src3]
+
+			*/
+			/*
+				(src, src2, fn1, fn2)
+				=>
+				[src, src2] [src2, fn1] [src2, fn2]
+			*/
+
+			handleStack: function(){
 				var
-					stack,
+					arrStack,
 
 					inst,
 
@@ -448,12 +480,13 @@ window.$log = (function(){
 					next
 				;
 
-				stack = this.stack;
+				arrStack = this.stack;
 
-				// step 1: 嗅探第一位 src ,并初始化
+				// 嗅探第一位 src, 并初始化
+				// 遇上的 fn, 都即时执行
 				while(!src){
 					inst = undefined;
-					src = stack.shift();
+					src = arrStack.shift();
 
 					sType = typeof src;
 
@@ -468,41 +501,40 @@ window.$log = (function(){
 						src = null;
 					}
 
-					if(!inst && 0 === stack.length){
+					if(!inst && 0 === arrStack.length){
 						return this;
 					}
 				}
 
-				len = stack.length;
+				len = arrStack.length;
 
-				// step 2: 检测 首位实例 是否单身 - -!!
+				// 若首位实例 是唯一一个剩下的实参(单身) - -!!
 				inst && len < 1 && AddingEngine(inst);
 
 				// step 3: 遍历绑定
 				for(i = 0; i < len; i++){
 
 					fn = undefined;
-					src = stack[i];
+					src = arrStack[i];
 
 					sType = typeof src;
 
-					if("string" === sType){
-
-					}else if("function" === sType){
+					if("function" === sType){
 						fn = src;
 						src = undefined;
 
-						next = stack[i + 1];
+						next = arrStack[i + 1];
 
 						if("string" === typeof next){
 							src = next;
 							i++;
 						}
 
-					}else{
+					}else if("string" !== sType){
 						continue;
 					}
 
+					// 返回的是 nextInst
 					inst = AddingEngine(inst, src, fn);
 				}
 
@@ -521,16 +553,22 @@ window.$log = (function(){
 
 		add = function(){
 			var
-				bridge
+				instAdd
 			;
 
-			bridge = create(Add);
-			bridge.stack = slice(arguments, 0);
-			bridge.stack.length && bridge.add();
+			instAdd = create(Add);
+			instAdd.stack = slice(arguments);
+			instAdd.stack.length && instAdd.add();
 
-			return bridge;
+			return instAdd;
 		};
 
+		/**
+		 * 添加没有使用 .add 加载的资源
+		 * @param src 完整 src, 最后不要省略 .后缀格式
+		 * @param [elem]
+		 * @returns {*}
+		 */
 		add.mark = function(src, elem){
 			var markJs;
 
@@ -555,27 +593,30 @@ window.$log = (function(){
 							len = jsEls.length,
 							item,
 
-							itemSRC,
-							regSRC = new RegExp(src + "(\\.js)?$")
-							;
+							rSrc
+						;
+
+						src = src.replace(/\./g, "\\\\.");
+
+						src = oR.hasExt.test(src) ?
+							src.replace(oR.hasExt, "($&)?$") :
+							src + "(\\\\.js)?$"
+						;
+
+						rSrc = new RegExp(src);
 
 						while(len--){
 
 							item = jsEls[len];
 
-							if(!item) continue;
-
-							itemSRC = item.getAttribute("src");
-							if(regSRC.test(itemSRC)){
+							if(rSrc.test(item.getAttribute("src"))){
 								elem = item;
 								break;
 							}
 						}
 
 						// gc
-						regSRC =
-						item = null
-						;
+						jsEls = item = null;
 
 					})(src);
 				}
@@ -622,9 +663,9 @@ window.$log = (function(){
 			return this;
 		};
 
-		exprots.add = add;
+		add.version = "2.2";
 
-		add.version = "2.1";
+		exprots.add = add;
 
 		// 私有通信
 		_hub.add = {
@@ -698,16 +739,24 @@ window.$log = (function(){
 
 		function id2path(id){
 
-			// step 1: 嗅探是否有假名(模块id), 假名对应路径
+			// 嗅探是否有假名(模块id), 假名对应路径
 			id = confVar.paths[id] || id;
 
-			// step 2: 是否触发 baseUrl 开关
+			// .js 结尾, "/" 开头, http,https,ftp 协议 不会触发 baseUrl
 			id = /\.js$/.test(id) || /^\//.test(id) || /(http|https|ftp):/.test(id) ?
 				id :
 				confVar.baseUrl + id
 			;
 
 			return id;
+		}
+
+		function callError(status, addProduct){
+			this.errorArr.length && forEach(this.errorArr, function(err){
+				err(status, addProduct);
+			});
+
+			return this;
 		}
 
 		getExistExports = function(id){
@@ -733,7 +782,7 @@ window.$log = (function(){
 				requireInner,
 
 				dependencies = []
-			 ;
+			;
 
 			regRequire = regRequire.replace("$", "\\$");
 
@@ -786,6 +835,10 @@ window.$log = (function(){
 
 				this.add = dances.add();
 
+				this.init = function(){
+					return this;
+				};
+
 				return this;
 			},
 
@@ -817,13 +870,14 @@ window.$log = (function(){
 								addProduct.loadComplete = [];
 							}
 
-							addProduct.loadComplete.push(function(){
-								_this.requireExports.push(addProduct.exports);
+							// 支持并发多次 require 相同的 src
+							addProduct.loadComplete.push(function(exports){
+								_this.requireExports.push(exports);
 								_this.require();
 							});
 
 						}else{
-							_this.callError("noAMD", addProduct);
+							callError.call(_this, "noAMD", addProduct);
 						}
 
 					});
@@ -906,7 +960,7 @@ window.$log = (function(){
 							if(confVar.timeout){
 								__time = setTimeout(function(){
 									protectDefine--;
-									_this.callError("timeout", _this.add);
+									callError.call(_this, "timeout", _this.add);
 									_this.add.status = "timeout";
 									$$log("[" + src + "]: load has failed", "error");
 								}, confVar.timeout);
@@ -1001,22 +1055,16 @@ window.$log = (function(){
 
 					}
 
+					// debug
 //					moduleAchieve._factoryArgs = aParam;
 				}
 
 				return exports;
 			},
 
-			callError: function(status, addProduct){
-				this.errorArr.length && forEach(this.errorArr, function(err){
-					err(status, addProduct);
-				});
-
-				return this;
-			},
-
 			// 暴露给使用者
-			// 添加错误信息
+			// 添加错误信息处理
+			// TODO 编写使用文档
 			error: function(fn, bDel){
 				var
 					base,
@@ -1198,7 +1246,12 @@ window.$log = (function(){
 
 		};
 
-		require = function(/*[dependence ,]callback*/){
+		/**
+		 * @param {Array} [dependence]
+		 * @param {Function} callback
+		 * @returns {*} require inst
+		 */
+		require = function(dependence, callback){
 			var
 				v5 = arguments[arguments.length - 1],
 				sType = typeof  v5,
@@ -1222,7 +1275,7 @@ window.$log = (function(){
 			return require;
 		};
 
-		confVar= {
+		confVar = {
 			baseUrl: "",
 
 			paths  : {},
@@ -1291,16 +1344,18 @@ window.$log = (function(){
 					item
 				;
 
-				if("[object Object]" === toString(data)){
-					for(var prop in data){
-						if(data.hasOwnProperty(prop)){
-							item = data[prop];
-							item.path && confV.paths(prop, item.path);
+				if("[object Object]" !== toString(data)){
+					return this;
+				}
 
-							confVar.shim[prop] = {
-								deps   : item.deps || [],
-								exports: item.exports || ""
-							}
+				for(var prop in data){
+					if(data.hasOwnProperty(prop)){
+						item = data[prop];
+						item.path && confV.paths(prop, item.path);
+
+						confVar.shim[prop] = {
+							deps   : item.deps || [],
+							exports: item.exports || ""
 						}
 					}
 				}

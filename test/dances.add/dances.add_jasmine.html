@@ -44,7 +44,7 @@
 <body>
 
 	<script type="text/javascript">
-		describe(".add", function(){
+		describe("dances.add", function(){
 			var
 				iframeEl,
 				fnBindReady
@@ -89,194 +89,194 @@
 				}
 			;
 
+			describe("syntax form", function(){
 
-			beforeEach(function(){
-				iframeEl = document.createElement("iframe");
-				iframeEl.style.width = "1px";
-				iframeEl.style.height = "1px";
-				iframeEl.style.overflow = "hidden";
-				iframeEl.style.border = "none";
-			});
+				beforeEach(function(){
+					iframeEl = document.createElement("iframe");
+					iframeEl.style.width = "1px";
+					iframeEl.style.height = "1px";
+					iframeEl.style.overflow = "hidden";
+					iframeEl.style.border = "none";
+				});
 
-			it("demo1", function(){
-				var
-					time
-				;
-				runs(function(){
+				it("src, fn ", function(){
+					var
+						resp
+					;
+					runs(function(){
 
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
 
-						dances.add.switchWindow(w);
+							dances.add.switchWindow(w);
 
-						dances
-							.add("./src/TestReady.js")
-							.add(function(){
-								time = this._readyTime;
-							})
-						;
+							dances
+								.add("./src/TestReady.js")
+								.add(function(){
+									resp = this._readyTime;
+								})
+							;
+						});
+
+						document.body.appendChild(iframeEl);
 					});
 
+					waitsFor(function(){
+						return resp;
+					}, "demo1 fail", 550);
 
-					document.body.appendChild(iframeEl);
-				});
-
-				waitsFor(function(){
-					return time;
-				}, "demo1 fail", 550);
-
-				runs(function(){
-					expect("number" === typeof time).toEqual(true);
-				});
-
-			});
-
-			it("demo2", function(){
-				var
-					time,
-					time2
-				;
-
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
-
-						dances.add.switchWindow(w);
-
-						dances
-							.add(function(){
-								time = this._readyTime;
-							})
-							.add("src/TestReady.js")
-							.add(function(){
-								time2 = this._readyTime;
-							})
-						;
+					runs(function(){
+						expect("number" === typeof resp).toEqual(true);
 					});
 
-					document.body.appendChild(iframeEl);
 				});
 
-				waitsFor(function(){
-					return time2;
-				}, "demo2 fail", 550);
+				it("fn, src, fn", function(){
+					var
+						time,
+						time2
+					;
 
-				runs(function(){
-					expect("undefined" === typeof time).toEqual(true);
-					expect("number" === typeof time2).toEqual(true);
-				});
+					runs(function(){
 
-			});
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
 
-			it("demo3", function(){
-				var
-					time,
-					time2
-				;
+							dances.add.switchWindow(w);
 
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
-
-						dances.add.switchWindow(w);
-
-						dances
-							.add("src/TestReady.js")
-							.add("src/TestReady2.js")
-							.add(function(){
-								time = this._readyTime;
-								time2 = this._readyTime2;
-							})
-						;
-					});
-
-					document.body.appendChild(iframeEl);
-				});
-
-				waitsFor(function(){
-					return time2;
-				}, "demo2 fail", 550);
-
-				runs(function(){
-					expect("number" === typeof time).toEqual(true);
-					expect("number" === typeof time2).toEqual(true);
-					expect(time).toEqual(time2);
-				});
-
-			});
-
-			it("demo4", function(){
-				var
-					time,
-					time2
-				;
-
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
-
-						dances.add.switchWindow(w);
-
-						dances
+							dances
+								.add(function(){
+									time = this._readyTime;
+								})
 								.add("src/TestReady.js")
 								.add(function(){
-									time  = this._readyTime;
+									time2 = this._readyTime;
+								})
+							;
+						});
+
+						document.body.appendChild(iframeEl);
+					});
+
+					waitsFor(function(){
+						return time2;
+					}, "demo2 fail", 550);
+
+					runs(function(){
+						expect("undefined" === typeof time).toEqual(true);
+						expect("number" === typeof time2).toEqual(true);
+					});
+
+				});
+
+				it("src, src, fn", function(){
+					var
+						time,
+						time2
+						;
+
+					runs(function(){
+
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
+
+							dances.add.switchWindow(w);
+
+							dances
+								.add("src/TestReady.js")
+								.add("src/TestReady2.js")
+								.add(function(){
+									time = this._readyTime;
+									time2 = this._readyTime2;
+								})
+							;
+						});
+
+						document.body.appendChild(iframeEl);
+					});
+
+					waitsFor(function(){
+						return time2;
+					}, "demo2 fail", 550);
+
+					runs(function(){
+						expect("number" === typeof time).toEqual(true);
+						expect("number" === typeof time2).toEqual(true);
+						expect(time).toEqual(time2);
+					});
+
+				});
+
+				it("src, fn, src, fn", function(){
+					var
+						time,
+						time2
+					;
+
+					runs(function(){
+
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
+
+							dances.add.switchWindow(w);
+
+							dances
+								.add("src/TestReady.js")
+								.add(function(){
+									time = this._readyTime;
 									this._readyTime = 5;
 								})
 								.add("src/TestReady2.js")
 								.add(function(){
 									time2 = this._readyTime2;
 								})
-						;
+							;
+						});
+
+						document.body.appendChild(iframeEl);
 					});
 
-					document.body.appendChild(iframeEl);
+					waitsFor(function(){
+						return time2;
+					}, "demo2 fail", 550);
+
+					runs(function(){
+						expect("number" === typeof time).toEqual(true);
+						expect(time2).toEqual(5);
+					});
+
 				});
 
-				waitsFor(function(){
-					return time2;
-				}, "demo2 fail", 550);
+				it("src&fn, src&fn, src&src&fn, fn, src&src, src, fn", function(){
+					var
 
-				runs(function(){
-					expect("number" === typeof time).toEqual(true);
-					expect(time2).toEqual(5);
-				});
-
-			});
-
-			it("demo5", function(){
-				var
-
-					expect_1,
-					expect_2,
-					expect_3,
-					expect_4,
-					expect_MX,
-					expectUndefined,
-					expectEnd
-				;
-
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
+						expect_1,
+						expect_2,
+						expect_3,
+						expect_4,
+						expect_MX,
+						expectUndefined,
+						expectEnd
 						;
 
-						dances.add.switchWindow(w);
+					runs(function(){
 
-						dances
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
+
+							dances.add.switchWindow(w);
+
+							dances
 								.add("src/demo5/common-base-base.js", function(){
 									expect_1 = this.bg2Change;
 								})
@@ -302,213 +302,213 @@
 								.add(function(){
 									expectEnd = 5;
 								})
-						;
-					});
+							;
+						});
 
 //					iframeEl.src = "dances.add.html";
-					document.body.appendChild(iframeEl);
+						document.body.appendChild(iframeEl);
+					});
+
+					waitsFor(function(){
+						return expectEnd;
+					}, "demo2 fail", 550);
+
+					runs(function(){
+						expect(expectUndefined).toEqual(undefined);
+						expect(expect_1).toEqual(expect_MX.bg2Change);
+						expect(expect_2).toEqual(expect_MX.bgRecover);
+						expect(expect_4).toEqual(true);
+					});
+
 				});
 
-				waitsFor(function(){
-					return expectEnd;
-				}, "demo2 fail", 550);
+				// 拟真环境
+				it("拟真环境", function(){
+					var
+						jsLength,
+						tag,
+						$,
 
-				runs(function(){
-					expect(expectUndefined).toEqual(undefined);
-					expect(expect_1).toEqual(expect_MX.bg2Change);
-					expect(expect_2).toEqual(expect_MX.bgRecover);
-					expect(expect_4).toEqual(true);
-				});
+						msg
+					;
 
-			});
+					runs(function(){
 
-			// 拟真环境
-			it("demo6", function(){
-				var
-					time,
-					time2,
-					jsLength,
-					tag,
-					$
-				;
-
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
-
-						dances.add.switchWindow(w);
-
-						dances
-							.add("src/necessaryImplement/jquery-1.7.2.min.js")
-							.add(function(){
-								$ = this.jQuery;
-							})
-							.add("src/necessaryImplement/common-library.js")
-							.add("src/necessaryImplement/common.js")
-						;
-
-						dances
-							.add("src/necessaryImplement/common.js")
-							.add("src/necessaryImplement/page.js")
-							.add(function(){
-								// 这里定义域 不仅仅是 js/common.js 已经加载完毕
-								// very important
-								// 而且 jquery.js common-library.js 也加载完毕
-
-								var
-									$El
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
 								;
 
-								$El = this.$("<section></section>");
-								tag = $El.getTag();
+							dances.add.switchWindow(w);
 
-							})
-							.add(function(){
-								jsLength = this.document.getElementsByTagName("script");
-							})
-						;
+							dances
+								.add("src/necessaryImplement/jquery-1.7.2.min.js")
+								.add(function(){
+									$ = this.jQuery;
+								})
+								.add("src/necessaryImplement/common-library.js")
+								.add("src/necessaryImplement/common.js")
+							;
+
+							dances
+								.add("src/necessaryImplement/common.js")
+								.add("src/necessaryImplement/page.js")
+								.add(function(){
+									// 这里定义域 不仅仅是 js/common.js 已经加载完毕
+									// very important
+									// 而且 jquery.js common-library.js 也加载完毕
+
+									var
+										$El
+									;
+
+									$El = this.$("<section></section>");
+									tag = $El.getTag();
+
+								})
+								.add(function(){
+									jsLength = this.document.getElementsByTagName("script");
+									msg = w.NS.methodA("by page.js");
+								})
+							;
+						});
+
+						document.body.appendChild(iframeEl);
 					});
 
-					document.body.appendChild(iframeEl);
-				});
+					waitsFor(function(){
+						return jsLength;
+					}, "demo6 fail", 550);
 
-				waitsFor(function(){
-					return jsLength;
-				}, "demo6 fail", 550);
-
-				runs(function(){
-					expect(jsLength.length).toEqual(4);
-					expect(tag).toEqual("section");
-					expect(typeof $.prototype.find).toEqual("function");
-				});
-
-			});
-
-			// 复查
-			it("demo7", function(){
-				var
-					time,
-					jsLength,
-					expectEnd
-				;
-
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
-
-						dances.add.switchWindow(w);
-
-						dances.
-							add("src/TestReady.js")
-						;
-						dances
-							.add("src/TestReady.js")
-							.add(function(){
-								time = this._readyTime;
-								jsLength = this.document.getElementsByTagName("script").length;
-								expectEnd = 5;
-							})
-						;
+					runs(function(){
+						expect(jsLength.length).toEqual(4);
+						expect(tag).toEqual("section");
+						expect(typeof $.prototype.find).toEqual("function");
+						expect(msg).toEqual("NS.methodA invoked. by page.js");
 					});
 
-					document.body.appendChild(iframeEl);
 				});
 
-				waitsFor(function(){
-					return expectEnd;
-				}, "demo6 fail", 550);
+				// 复查
+				it("复查", function(){
+					var
+						time,
+						jsLength,
+						expectEnd
+					;
 
-				runs(function(){
-					expect(jsLength).toEqual(1);
-					expect(typeof time).toEqual("number");
+					runs(function(){
+
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+							;
+
+							dances.add.switchWindow(w);
+
+							dances.
+								add("src/TestReady.js")
+							;
+							dances
+								.add("src/TestReady.js")
+								.add(function(){
+									time = this._readyTime;
+									jsLength = this.document.getElementsByTagName("script").length;
+									expectEnd = 5;
+								})
+							;
+						});
+
+						document.body.appendChild(iframeEl);
+					});
+
+					waitsFor(function(){
+						return expectEnd;
+					}, "demo6 fail", 550);
+
+					runs(function(){
+						expect(jsLength).toEqual(1);
+						expect(typeof time).toEqual("number");
+					});
+
 				});
 
-			});
+				// css
+				it("css", function(){
+					var
+						time,
+						time2
+					;
 
-			// css
-			it("demo8", function(){
-				var
-					time,
-					time2,
-					jsLength,
-					expectEnd
-				;
+					runs(function(){
 
-				runs(function(){
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
 
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
-						;
+							dances.add.switchWindow(w);
 
-						dances.add.switchWindow(w);
+							dances.
+								add(function(){
+									var doc = this.document;
 
-						dances.
-							add(function(){
-								var doc = this.document;
-
-								time = doc.defaultView ?
+									time = doc.defaultView ?
 										doc.defaultView.getComputedStyle(doc.body).borderBottomWidth :
 										doc.body.currentStyle.borderBottomWidth
-								;
-							})
-							.add("src/demo_01.css")
-							.add(function(){
-								var doc = this.document;
-								time2 = doc.defaultView ?
+									;
+								})
+								.add("src/demo_01.css")
+								.add(function(){
+									var doc = this.document;
+									time2 = doc.defaultView ?
 										doc.defaultView.getComputedStyle(doc.body).borderBottomWidth :
 										doc.body.currentStyle.borderBottomWidth
-								;
-							})
+									;
+								})
+						});
+
+						document.body.appendChild(iframeEl);
 					});
 
-					document.body.appendChild(iframeEl);
+					waitsFor(function(){
+						return time2;
+					}, "demo8 fail", 550);
+
+					runs(function(){
+						expect(time !== "1px").toEqual(true);
+						expect(time2).toEqual("1px");
+					});
+
 				});
 
-				waitsFor(function(){
-					return time2;
-				}, "demo8 fail", 550);
-
-				runs(function(){
-					expect(time !== "1px").toEqual(true);
-					expect(time2).toEqual("1px");
-				});
-
-			});
-
-			// css + js
-			it("demo9", function(){
-				var
-					time,
-					time2,
-					time3,
-					jsLength,
-					expectEnd
-				;
-
-				runs(function(){
-
-					fnBindReady(iframeEl, function(){
-						var
-							w = this.contentWindow
+				// css + js
+				it("css + js", function(){
+					var
+						time,
+						time2,
+						time3,
+						jsLength,
+						expectEnd
 						;
 
-						dances.add.switchWindow(w);
+					runs(function(){
 
-						dances
+						fnBindReady(iframeEl, function(){
+							var
+								w = this.contentWindow
+								;
+
+							dances.add.switchWindow(w);
+
+							dances
 								.add("src/TestReady.js")
 								.add(function(){
 									var doc = this.document;
 
 									time = doc.defaultView ?
-											doc.defaultView.getComputedStyle(doc.body).borderBottomWidth :
-											doc.body.currentStyle.borderBottomWidth
+										doc.defaultView.getComputedStyle(doc.body).borderBottomWidth :
+										doc.body.currentStyle.borderBottomWidth
 									;
 								})
 								.add("src/demo_01.css")
@@ -517,8 +517,8 @@
 									var doc = this.document;
 
 									time2 = doc.defaultView ?
-											doc.defaultView.getComputedStyle(doc.body).borderBottomWidth :
-											doc.body.currentStyle.borderBottomWidth
+										doc.defaultView.getComputedStyle(doc.body).borderBottomWidth :
+										doc.body.currentStyle.borderBottomWidth
 									;
 								})
 
@@ -527,26 +527,37 @@
 									time3 = this._readyTime;
 									expectEnd = 5;
 								})
-						;
+							;
+						});
+
+						document.body.appendChild(iframeEl);
 					});
 
-					document.body.appendChild(iframeEl);
-				});
+					waitsFor(function(){
+						return expectEnd;
+					}, "demo6 fail", 550);
 
-				waitsFor(function(){
-					return expectEnd;
-				}, "demo6 fail", 550);
+					runs(function(){
+						expect(time !== "1px").toEqual(true);
+						expect(time2).toEqual("1px");
+						expect(typeof time3).toEqual("number");
+					});
 
-				runs(function(){
-					expect(time !== "1px").toEqual(true);
-					expect(time2).toEqual("1px");
-					expect(typeof time3).toEqual("number");
 				});
 
 			});
 
 
+			describe("[method] mark", function(){
+				// TODO
+			});
+
+			describe("[method] switchWindow", function(){
+				// TODO
+			});
+
 		});
+
 	</script>
 
 </body>
