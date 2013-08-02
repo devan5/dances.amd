@@ -2,7 +2,7 @@
 * @dances.amd
 * @overview
 */
-(function(exports, undefined){
+(function(exports){
 
 	var
 		define,
@@ -94,7 +94,8 @@
 		}
 	};
 
-	getInlineDependencies = function(_factory){
+	// 从函数中, 提取出形参, 返回
+	getInlineDependencies = function getInlineDependencies(_factory){
 		var
 			factoryPlain = _factory.toString(),
 
@@ -107,7 +108,7 @@
 
 		regRequire = regRequire.replace("$", "\\$");
 
-		regRequire = new RegExp(regRequire + "\\s*\\(\\s*([\"\'])([^\\s\'\"]+)\\1\\s*\\)", "g");
+		regRequire = new RegExp("=\\s*" + regRequire + "\\s*\\(\\s*([\"\'])([^\\s\'\"]+)\\1\\s*\\)\\s*;", "g");
 
 		// 清除注释
 		factoryPlain = factoryPlain.replace(oREG.commentSingle, "").replace(oREG.commentBlock, "");
@@ -144,6 +145,7 @@
 			this.dependencies = args.pop();
 
 			if("[object Array]" !== toString(this.dependencies)){
+				// 检测函数是否具有形参
 				if(callback.length){
 					this.dependencies = getInlineDependencies(callback);
 					this.requireExports.push(getExistExports);
@@ -580,15 +582,19 @@
 			require
 		;
 
+		// @example dances.require(..., fn)
 		if("function" === sType){
 			if(arguments.length > 1 || v5.length){
-				require = create(Require).init(arguments);
-				require.require();
+				require = create(Require)
+					.init(arguments)
+					.require()
+				;
 
 			}else{
 				v5();
 			}
 
+		// @example dances.require("onlySrc")
 		}else if("string" === sType && 1 === arguments.length){
 			dances.add(v5);
 		}

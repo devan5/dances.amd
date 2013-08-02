@@ -440,6 +440,7 @@
 			runs(function(){
 
 				iframeEl.setAttribute("data-name", "require invokeII");
+
 				fnBindReady(iframeEl, function(){
 					var
 						w = this.contentWindow,
@@ -450,7 +451,9 @@
 
 					fnBindReady(jsEl, function(){
 						w.require(function(_){
-							getA = _(baseUrl + "require_invokeII/a");
+							// important !!!
+							// 特别留意, 这必须显示使用路径, 不需带变量, 这是限制!!!!
+							getA = _("test/dances.require/src/require_invokeII/a");
 						});
 					});
 

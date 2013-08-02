@@ -10,37 +10,37 @@
 
 #### syntax
 
-+
-	dances
-		.add(src[, src1][, srcN][, callback])
-	;
++  
+		dances
+			.add(src[, src1][, srcN][, callback])
+		;
 
-+
-	dances
-		.add(src, callback)
-	;
++ 
+		dances
+			.add(src, callback)
+		;
 
-+
-	dances
-		.add(src)
-		.add(callback)
-	;
++ 
+		dances
+			.add(src)
+			.add(callback)
+		;
 
-+
-	dances
-		.add(src)
-		.add(callback)
-		.add(src2)
-		.add(src3)
-	;
++ 
+		dances
+			.add(src)
+			.add(callback)
+			.add(src2)
+			.add(src3)
+		;
 
-+
-	dances
-		.add(src)
-		.add(src2)
-		.add(src3, src4, src)
-		.add(callback)
-	;
++ 
+		dances
+				.add(src)
+				.add(src2)
+				.add(src3, src4, src)
+				.add(callback)
+			;
 
 #### 解决 模板与子页的依赖
 
@@ -165,9 +165,9 @@
 
 + 常用
 
-	define(function(require, exports, module){
-		// factory
-	});
+		define(function(require, exports, module){
+			// factory
+		});
 
 ### dances.require
 #### syntax
@@ -188,9 +188,12 @@
 		});
 
 + 使用两个版本jQuery  
+
 		require(["jQuery_1.7", "jQuery_1.9"], function($17, $19){
 			// do code here
 		});	
+
+留意以下用法: 必须纯粹地显示使用路径, 不得带有参数, 表达式! 这是使用此用法的限制!
 
 		require(function(require){
 			var
