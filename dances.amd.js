@@ -124,7 +124,6 @@ window.$log = (function(){
 
 	;
 
-
 	var
 		_hub = {}
 	;

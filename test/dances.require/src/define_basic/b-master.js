@@ -5,9 +5,9 @@ define(function(require, exprots, module){
 	;
 	
 	module.exports = {
-		b1 : require("./src/define_basic/b1"),
+		b1 : require("test/dances.require/src/define_basic/b1"),
 
-		b2 : require("./src/define_basic/b2")
+		b2 : require("test/dances.require/src/define_basic/b2")
 	};
 
 });

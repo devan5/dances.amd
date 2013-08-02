@@ -4,6 +4,6 @@
 			return "created by c1.js";
 		},
 		
-		c2: require("./src/mul_require/c2")
+		c2: require("test/dances.require/src/mul_require/c2")
 	}
 });

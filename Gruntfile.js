@@ -24,7 +24,7 @@ module.exports = function(grunt){
 		pkg      : grunt.file.readJSON("package.json"),
 
 		concat   : {
-			generic: {
+			Amd: {
 				options: {
 					banner: '/* <%= pkg.name %> - v<%= pkg.version %> - ' +
 					        '<%= grunt.template.today("yyyy-mm-dd") %> */' +
@@ -38,7 +38,7 @@ module.exports = function(grunt){
 				}
 			},
 			
-			add: {
+			Add: {
 				options: {
 					banner: '/* ' + onfAdd.name + ' - v<%= pkg.version %> - ' +
 					        '<%= grunt.template.today("yyyy-mm-dd") %> */' +
@@ -54,7 +54,7 @@ module.exports = function(grunt){
 		},
 
 		uglify   : {
-			generic: {
+			Amd: {
 				expand : true,
 				options: {
 					banner   : '/* <%= pkg.name %> - v<%= pkg.version %> - ' +
@@ -66,10 +66,10 @@ module.exports = function(grunt){
 				src    : onfAmd.destPath + onfAmd.name + ".js",
 				ext    : (onfAmd.name.slice(onfAmd.name.indexOf(".")) + ".min.js")
 			},
-			add: {
+			Add: {
 				expand : true,
 				options: {
-					banner   : '/* <%= pkg.name %> - v<%= pkg.version %> - ' +
+					banner: '/* ' + onfAdd.name + ' - v<%= pkg.version %> - ' +
 					           '<%= grunt.template.today("yyyy-mm-dd, h:MM:ss TT") %> */' +
 					           '\n',
 					report   : "gzip",
@@ -81,8 +81,11 @@ module.exports = function(grunt){
 		},
 
 		clean: {
-			def: {
-				src: "dist/"
+			Amd: {
+				src: onfAmd.destPath + onfAmd.name + "*.js"
+			},
+			Add: {
+				src: onfAdd.destPath + onfAdd.name + "*.js"
 			}
 		}
 
@@ -93,6 +96,19 @@ module.exports = function(grunt){
 	grunt.loadNpmTasks("grunt-contrib-uglify");
 
 	grunt.registerTask("default", []);
-	grunt.registerTask("add", ["concat:add", "uglify:add"]);
+
+	grunt.registerTask("build", ["amd", "add"]);
+
+	grunt.registerTask("amd", [
+		"clean:Amd",
+		"concat:Amd",
+		"uglify:Amd"
+	]);
+
+	grunt.registerTask("add", [
+		"clean:Add",
+		"concat:Add",
+		"uglify:Add"
+	]);
 
 };
