@@ -1,0 +1,23 @@
+{
+  "name": "dances.amd",
+  "version": "2.1.0",
+  "description": "异步模块加载与定义 .amd 是 dances 核心之一",
+  "main": "dances.amd.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "",
+  "author": "devan5",
+  "license": "MIT",
+  "readmeFilename": "readME.md",
+  "gitHead": "057816ff5a247978cc0914565b1ee3c39d06e84f",
+  "devDependencies": {
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-clean": "~0.5.0",
+    "grunt-contrib-uglify": "~0.2.2",
+    "grunt": "~0.4.1"
+  }
+}

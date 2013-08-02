@@ -1,0 +1,19 @@
+{
+	"Amd": [
+		"dances.log.js",
+		"dances.amd.Hdr.js",
+		"dances.amd.Util.js",
+
+		"dances.amd.Ftr.js"
+
+	],
+	"Add": [
+		"dances.log.js",
+		"dances.add.Hdr.js",
+		"dances.add.Util.js",
+		"dances.add.js",
+
+		"dances.add.Ftr.js"
+	]
+
+}
