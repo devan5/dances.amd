@@ -91,7 +91,7 @@ if("[object Function]" !== typeof toString(dances) && "[object Object]" !== type
 			fAppend,
 			headEl = document.getElementsByTagName("head")[0],
 			oAss
-			;
+		;
 
 		oAss = {
 			css: {
@@ -548,5 +548,18 @@ if("[object Function]" !== typeof toString(dances) && "[object Object]" !== type
 	};
 
 	exprots.add = add;
+
+	// 私有通信
+	if("undefined" !== typeof _hub && _hub !== window._hub){
+		_hub.add = {
+			map: {
+				factory: AddFactory
+			},
+
+			get: function(v){
+				return this.map.hasOwnProperty(v) ? this.map[v] : false;
+			}
+		};
+	}
 
 })(dances);
